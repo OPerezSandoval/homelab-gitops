@@ -10,12 +10,13 @@ spec:
     chart: tailscale-operator
     targetRevision: 1.78.3
     helm:
-      valuesObject:
-        operatorConfig:
-          hostname: tailscale-operator
-        oauth:
-          clientId: "katHy0aNeN11CNTRL"
-          clientSecret: "tskey-client-katHy0aNeN11CNTRL-YU9zYv7a8JQm488FvaitJQXnGbUTt1nz"
+      parameters:
+        - name: oauth.clientId
+          value: "katHy0aNeN11CNTRL"
+        - name: oauth.clientSecret
+          value: "tskey-client-katHy0aNeN11CNTRL-YU9zYv7a8JQm488FvaitJQXnGbUTt1nz"
+        - name: operatorConfig.hostname
+          value: "tailscale-operator"
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
