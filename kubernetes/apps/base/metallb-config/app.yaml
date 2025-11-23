@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metallb-config
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+    targetRevision: main
+    path: kubernetes/apps/base/metallb-config/ipaddresspool.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metallb
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
