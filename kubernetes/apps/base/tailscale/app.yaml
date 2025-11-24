@@ -12,9 +12,9 @@ spec:
     helm:
       parameters:
         - name: oauth.clientId
-          value: "katHy0aNeN11CNTRL"
+          value: "kodn1z5P8F11CNTRL"
         - name: oauth.clientSecret
-          value: "tskey-client-katHy0aNeN11CNTRL-YU9zYv7a8JQm488FvaitJQXnGbUTt1nz"
+          value: "tskey-client-kodn1z5P8F11CNTRL-rzdpL8PrGBefNHZuAzT2CewycYAbyFdri"
         - name: operatorConfig.hostname
           value: "tailscale-operator"
   destination:
