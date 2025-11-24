@@ -6,4 +6,4 @@ resources:
   - metallb
   - metallb-config
   - metrics-server
-  - tailscale
+  
