@@ -1,0 +1,16 @@
+# kubernetes/apps/base/argocd/manifests/argocd-cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argo-gitops
+data:
+  url: http://192.168.1.86:31599
+  dex.config: |
+    connectors:
+      - type: github
+        id: github
+        name: GitHub
+        config:
+          clientID: $dex.github.clientId
+          clientSecret: $dex.github.clientSecret
