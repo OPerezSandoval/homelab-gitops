@@ -1,0 +1,18 @@
+# kubernetes/apps/base/argocd/manifests/argocd-rbac-cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argo-gitops
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    p, role:org-admin, applications, *, */*, allow
+    p, role:org-admin, clusters, *, *, allow
+    p, role:org-admin, repositories, *, *, allow
+    p, role:org-admin, projects, *, *, allow
+    p, role:org-admin, accounts, *, *, allow
+    p, role:org-admin, gpgkeys, *, *, allow
+    p, role:org-admin, certificates, *, *, allow
+    
+    g, OPerezSandoval, role:org-admin
