@@ -7,4 +7,3 @@ resources:
   - metallb-config
   - metrics-server
   - tailscale
-  - argocd
