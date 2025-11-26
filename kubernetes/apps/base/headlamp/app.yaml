@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: headlamp
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://headlamp-k8s.github.io/headlamp/
+    chart: headlamp
+    targetRevision: 0.28.0
+    helm:
+      valuesObject:
+        replicaCount: 1
+        
+        ingress:
+          enabled: true
+          className: nginx
+          annotations: {}
+          hosts:
+            - host: headlamp.balinese-pentatonic.ts.net  
+              paths:
+                - path: /
+                  pathType: Prefix
+        
+        serviceAccount:
+          create: true
+          name: headlamp
+        
+        clusterRoleBinding:
+          create: true
+          
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: headlamp
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
