@@ -1,0 +1,32 @@
+replicaCount: 4
+
+image:
+  repository: operez11/helm-demo
+  pullPolicy: IfNotPresent
+
+environment: production
+
+customLabels:
+  - "high-availability"
+  - "auto-scaling"
+  - "monitored"
+  - "production-ready"
+  - "load-balanced"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+configMap:
+  enabled: true
+  data:
+    database_host: "prod-db.example.com"
+    cache_ttl: "7200"
+    api_endpoint: "https://api.example.com"
+
+extraEnvVars:
+  - name: MONITORING
+    value: "enabled"
+  - name: METRICS_EXPORT
+    value: "true"

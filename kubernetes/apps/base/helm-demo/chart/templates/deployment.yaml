@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "new-demo-app.fullname" . }}
+  labels:
+    {{- include "new-demo-app.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "new-demo-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "new-demo-app.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "new-demo-app.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: ENVIRONMENT
+            value: {{ .Values.environment | quote }}
+          -   name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          - name: DEPLOYMENT_NAME
+            value: {{ include "new-demo-app.fullname" . | quote }}
+          - name: APP_VERSION
+            value: {{ .Chart.AppVersion | quote }}
+          - name: REPLICA_COUNT
+            value: {{ .Values.replicaCount | quote }}
+          - name: HELM_RELEASE
+            value: {{ .Release.Name | quote }}
+          - name: CUSTOM_LABELS
+            value: {{ join "," .Values.customLabels | quote }}
+
+          # IF STATEMENT 
+          {{- if eq .Values.environment "production" }}
+          - name: PRODUCTION_MODE
+            value: "true"
+          - name: LOG_LEVEL
+            value: "WARNING"
+          {{- else }}
+          - name: PRODUCTION_MODE
+            value: "false"
+          - name: LOG_LEVEL
+            value: "DEBUG"
+          {{- end }}
+        
+          # RANGE - Iterate over extra env vars
+          {{- range .Values.extraEnvVars }}
+          - name: {{ .name }}
+            value: {{ .value | quote }}
+          {{- end }}
+        
+          # IF ConfigMap is enabled, load data from it
+          {{- if .Values.configMap.enabled }}
+          - name: DATABASE_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "new-demo-app.fullname" . }}-config
+                key: database_host
+          - name: CACHE_TTL
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "new-demo-app.fullname" . }}-config
+                key: cache_ttl
+          - name: API_ENDPOINT
+            valueFrom:
+              configMapKeyRef:
+                name: {{ include "new-demo-app.fullname" . }}-config
+                key: api_endpoint
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080 
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health      
+              port: 8080        
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health     
+              port: 8080       
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
