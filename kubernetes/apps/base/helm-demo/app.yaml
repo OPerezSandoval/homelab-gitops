@@ -7,7 +7,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/operez11/homelab-gitops.git
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
     path: kubernetes/apps/overlays/dev/helm-demo
   destination:
