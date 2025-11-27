@@ -1,42 +1,21 @@
+# kubernetes/apps/base/helm-demo/app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: helm-demo-dev
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
     repoURL: https://github.com/operez11/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/overlays/dev/helm-demo
+    path: kubernetes/apps/base/helm-demo/chart  
+    helm:
+      valueFiles:
+        - ../../../overlays/dev/helm-demo/values.yaml  
   destination:
     server: https://kubernetes.default.svc
     namespace: helm-demo-dev
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: helm-demo-prod
-  namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/operez11/homelab-gitops.git
-    targetRevision: main
-    path: kubernetes/apps/overlays/prod/helm-demo
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: helm-demo-prod
   syncPolicy:
     automated:
       prune: true

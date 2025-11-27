@@ -1,0 +1,31 @@
+replicaCount: 2
+
+image:
+  repository: operez11/helm-demo
+  pullPolicy: Always
+
+environment: development
+
+customLabels:
+  - "debug-enabled"
+  - "fast-deployment"
+  - "testing-mode"
+  - "hot-reload"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+configMap:
+  enabled: true
+  data:
+    database_host: "dev-db.example.com"
+    cache_ttl: "1800"
+    api_endpoint: "https://dev-api.example.com"
+
+extraEnvVars:
+  - name: DEBUG_MODE
+    value: "true"
+  - name: VERBOSE_LOGGING
+    value: "enabled"
