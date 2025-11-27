@@ -9,7 +9,10 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/overlays/dev/helm-demo
+    path: kubernetes/apps/base/helm-demo/chart
+    helm:
+      valueFiles:
+        - ../../../overlays/dev/helm-demo/values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: helm-demo-dev
