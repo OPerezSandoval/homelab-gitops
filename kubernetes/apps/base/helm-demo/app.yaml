@@ -1,4 +1,3 @@
-# kubernetes/apps/base/helm-demo/app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -16,6 +15,30 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: helm-demo-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: helm-demo-prod
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+    targetRevision: main
+    path: kubernetes/apps/base/helm-demo/chart
+    helm:
+      valueFiles:
+        - ../../../overlays/prod/helm-demo/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: helm-demo-prod
   syncPolicy:
     automated:
       prune: true
