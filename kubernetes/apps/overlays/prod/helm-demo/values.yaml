@@ -2,6 +2,7 @@ replicaCount: 4
 
 image:
   repository: operez11/helm-demo
+  tag: prod
   pullPolicy: IfNotPresent
 
 environment: production
@@ -14,7 +15,7 @@ customLabels:
   - "load-balanced"
 
 service:
-  type: ClusterIP
+  type: NodePort
   port: 80
   targetPort: 8080
 
