@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: operez11/helm-demo
-  tag: dev-e4454ce
+  tag: dev-34bf1ec
   pullPolicy: Always
 
 environment: development
