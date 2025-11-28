@@ -14,7 +14,6 @@ spec:
     helm:
       valuesObject:
         replicaCount: 1
-        
         ingress:
           enabled: true
           className: nginx
@@ -23,19 +22,17 @@ spec:
             - host: headlamp.balinese-pentatonic.ts.net  
               paths:
                 - path: /
-                  pathType: Prefix
-        
+                  pathType: Prefix  
         serviceAccount:
           create: true
           name: headlamp
-        
         clusterRoleBinding:
           create: true
-          
+        config:
+          baseURL: ""
   destination:
     server: https://kubernetes.default.svc
     namespace: headlamp
-  
   syncPolicy:
     automated:
       prune: true
