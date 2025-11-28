@@ -8,10 +8,9 @@ image:
 environment: development
 
 customLabels:
+  - "dev-env"
   - "debug-enabled"
-  - "fast-deployment"
-  - "testing-mode"
-  - "hot-reload"
+  - "test-mode"
 
 service:
   type: NodePort
