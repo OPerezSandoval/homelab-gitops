@@ -2,7 +2,7 @@ replicaCount: 4
 
 image:
   repository: operez11/helm-demo
-  tag: prod-afd79f0
+  tag: prod-3537478
   pullPolicy: IfNotPresent
 
 environment: production
