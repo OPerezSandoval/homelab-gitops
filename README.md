@@ -1,1 +1,1 @@
-# home-lab-cluster
+# homelab-cluster
