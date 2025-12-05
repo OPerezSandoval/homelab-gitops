@@ -54,7 +54,7 @@ data:
         <div class="container">
             <h1>Kustomize Demo</h1>
             <div class="badge">Production Environment for kustomize demo</div>
-            <p class="info">Production deployment</p>
+            <p class="info">Production deployment for kustomize demo</p>
             <ul class="feature-list">
                 <li>Prod enabled</li>
                 <li>4 replicas</li>
