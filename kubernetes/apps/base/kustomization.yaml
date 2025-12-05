@@ -9,3 +9,4 @@ resources:
   - tailscale
   - headlamp
   - helm-demo
+  - kustomize-demo

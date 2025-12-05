@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kustomize-demo
+  labels:
+    app: kustomize-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-demo
+  template:
+    metadata:
+      labels:
+        app: kustomize-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: html
+        configMap:
+          name: kustomize-demo-html

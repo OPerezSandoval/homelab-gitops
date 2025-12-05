@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kustomize-demo-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Kustomize Demo - Base</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .container {
+                text-align: center;
+                background: white;
+                padding: 50px;
+                border-radius: 20px;
+                box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            }
+            h1 {
+                color: #667eea;
+                margin-bottom: 20px;
+            }
+            .badge {
+                background: #667eea;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 25px;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Kustomize Demo</h1>
+            <div class="badge">BASE ENVIRONMENT</div>
+            <p>This is the base configuration</p>
+        </div>
+    </body>
+    </html>

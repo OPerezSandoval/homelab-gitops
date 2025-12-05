@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kustomize-demo-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Kustomize Demo - Development</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            }
+            .container {
+                text-align: center;
+                background: white;
+                padding: 50px;
+                border-radius: 20px;
+                box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            }
+            h1 {
+                color: #11998e;
+                margin-bottom: 20px;
+            }
+            .badge {
+                background: #11998e;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 25px;
+                font-weight: bold;
+                font-size: 18px;
+                text-transform: uppercase;
+            }
+            .info {
+                margin-top: 20px;
+                color: #666;
+            }
+            .feature-list {
+                text-align: left;
+                margin-top: 20px;
+            }
+            .feature-list li {
+                margin: 10px 0;
+                color: #555;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Kustomize Demo</h1>
+            <div class="badge">Development Environment</div>
+            <p class="info">Testing new features and configurations</p>
+            <ul class="feature-list">
+                <li>Dev enabled</li>
+                <li>2 replicas</li>
+            </ul>
+        </div>
+    </body>
+    </html>
