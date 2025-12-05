@@ -5,6 +5,7 @@ namespace: kustomize-dev
 
 resources:
   - ../../../base/kustomize-demo
+  - kustomize-demo
 
 replicas:
   - name: kustomize-demo
