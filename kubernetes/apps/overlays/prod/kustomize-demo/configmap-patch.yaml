@@ -53,7 +53,7 @@ data:
     <body>
         <div class="container">
             <h1>Kustomize Demo</h1>
-            <div class="badge">Production Environment</div>
+            <div class="badge">Production Environment for kustomize demo</div>
             <p class="info">Production deployment</p>
             <ul class="feature-list">
                 <li>Prod enabled</li>
