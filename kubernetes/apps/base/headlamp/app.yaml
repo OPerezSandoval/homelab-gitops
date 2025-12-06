@@ -19,7 +19,7 @@ spec:
           ingressClassName: tailscale
           annotations: {}
           hosts:
-            - host: headlamp.balinese-pentatonic.ts.net  
+            - host: headlamp
               paths:
                 - path: /
                   type: Prefix  
