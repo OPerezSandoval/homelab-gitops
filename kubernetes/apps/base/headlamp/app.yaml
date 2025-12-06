@@ -12,8 +12,6 @@ spec:
     chart: headlamp
     targetRevision: 0.28.0
     helm:
-      valueFiles:
-        - ../../../overlays/dev/headlamp/values.yaml
       valuesObject:
         replicaCount: 1
         ingress:
