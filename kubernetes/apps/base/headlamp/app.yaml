@@ -16,13 +16,13 @@ spec:
         replicaCount: 1
         ingress:
           enabled: true
-          className: nginx
+          ingressClassName: nginx
           annotations: {}
           hosts:
             - host: headlamp.balinese-pentatonic.ts.net  
               paths:
                 - path: /
-                  pathType: Prefix  
+                  type: Prefix  
         serviceAccount:
           create: true
           name: headlamp
