@@ -16,7 +16,7 @@ spec:
         replicaCount: 1
         ingress:
           enabled: true
-          ingressClassName: nginx
+          ingressClassName: tailscale
           annotations: {}
           hosts:
             - host: headlamp.balinese-pentatonic.ts.net  
