@@ -22,7 +22,10 @@ spec:
             - host: headlamp
               paths:
                 - path: /
-                  type: Prefix  
+                  type: Prefix 
+          tls:
+            - hosts:
+                - headlamp
         serviceAccount:
           create: true
           name: headlamp
