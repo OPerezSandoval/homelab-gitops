@@ -26,6 +26,10 @@ spec:
           tls:
             - hosts:
                 - headlamp
+        service:
+          type: NodePort
+          port: 80
+          targetPort: 8080
         serviceAccount:
           create: true
           name: headlamp
