@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medtracker
+  labels:
+    app: medtracker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: medtracker
+  template:
+    metadata:
+      labels:
+        app: medtracker
+    spec:
+      containers:
+      - name: medtracker
+        image: operez11/medtracker:1.0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+          name: http
