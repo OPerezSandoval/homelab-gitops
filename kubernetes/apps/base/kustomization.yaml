@@ -10,3 +10,4 @@ resources:
   - headlamp
   - helm-demo
   - kustomize-demo
+  - med-tracker
