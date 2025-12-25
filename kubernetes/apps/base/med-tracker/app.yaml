@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: med-tracker
-  namespace: argocd
+  namespace: argo-gitops
 spec:
   project: default
   source:
