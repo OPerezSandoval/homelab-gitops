@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: medtracker
+  name: medtracker-dev
   namespace: argo-gitops
 spec:
   project: default
@@ -22,7 +22,7 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: medtracker
+  name: medtracker-prod
   namespace: argo-gitops
 spec:
   project: default
