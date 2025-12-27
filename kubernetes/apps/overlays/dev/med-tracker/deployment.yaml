@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: medtracker
-        image: operez11/medtracker:1.0.1
+        image: operez11/medtracker:1.0.4
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
