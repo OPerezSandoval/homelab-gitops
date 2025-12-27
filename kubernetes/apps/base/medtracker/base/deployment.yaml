@@ -28,4 +28,4 @@ spec:
       volumes:
       - name: medtracker-data
         persistentVolumeClaim:
-          claimName: medtracker-pvc
+          claimName: medtracker
