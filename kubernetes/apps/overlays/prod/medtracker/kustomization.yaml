@@ -6,3 +6,7 @@ namespace: medtracker-prod
 resources:
   - ../../../base/medtracker/base
   - pvc.yaml
+
+replicas:
+  - name: medtracker
+    count: 2
