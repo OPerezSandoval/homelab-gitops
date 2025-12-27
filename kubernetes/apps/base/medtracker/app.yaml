@@ -1,17 +1,38 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: med-tracker
+  name: medtracker
   namespace: argo-gitops
 spec:
   project: default
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/base/medtracker/base
+    path: kubernetes/apps/overlays/dev/medtracker
   destination:
     server: https://kubernetes.default.svc
-    namespace: medtracker
+    namespace: medtracker-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: medtracker
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+    targetRevision: main
+    path: kubernetes/apps/overlays/prod/medtracker
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: medtracker-prod
   syncPolicy:
     automated:
       prune: true
