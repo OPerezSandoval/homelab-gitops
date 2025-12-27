@@ -21,3 +21,10 @@ spec:
         ports:
         - containerPort: 5000
           name: http
+        volumeMounts:
+        - mountPath: /app/instance
+          name: medtracker-data
+      volumes:
+      - name: medtracker-data
+        persistentVolumeClaim:
+          claimName: medtracker-pvc
