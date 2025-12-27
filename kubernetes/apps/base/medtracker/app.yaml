@@ -8,10 +8,10 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/overlays/dev/med-tracker
+    path: kubernetes/apps/base/medtracker/base
   destination:
     server: https://kubernetes.default.svc
-    namespace: med-tracker
+    namespace: medtracker
   syncPolicy:
     automated:
       prune: true
