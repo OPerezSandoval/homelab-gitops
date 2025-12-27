@@ -11,7 +11,7 @@ spec:
     path: kubernetes/apps/overlays/dev/kustomize-demo
   destination:
     server: https://kubernetes.default.svc
-    namespace: kustomize-dev
+    namespace: kustomize-demo-dev
   syncPolicy:
     automated:
       prune: true
@@ -32,7 +32,7 @@ spec:
     path: kubernetes/apps/overlays/prod/kustomize-demo
   destination:
     server: https://kubernetes.default.svc
-    namespace: kustomize-prod
+    namespace: kustomize-demo-prod
   syncPolicy:
     automated:
       prune: true
