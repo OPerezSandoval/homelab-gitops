@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: kustomize-demo-dev
-  namespace: argocd
+  namespace: argo-gitops
 spec:
   project: default
   source:
@@ -23,7 +23,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: kustomize-demo-prod
-  namespace: argocd
+  namespace: argo-gitops
 spec:
   project: default
   source:
