@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: kustomize-demo-dev
 
 resources:
-  - ../../../base/kustomize-demo
+  - ../../../base/kustomize-demo/base
 
 replicas:
   - name: kustomize-demo
