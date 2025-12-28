@@ -1,10 +1,4 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: medtracker
-spec:
-  template:
-    spec:
-      volumes:
-        - name: medtracker-data
-          emptyDir: {}
+- op: remove
+  path: /spec/template/spec/containers/0/volumeMounts
+- op: remove
+  path: /spec/template/spec/volumes

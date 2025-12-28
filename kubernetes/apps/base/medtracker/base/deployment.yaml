@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: medtracker
-  namespace: medtracker
   labels:
     app: medtracker
 spec:
