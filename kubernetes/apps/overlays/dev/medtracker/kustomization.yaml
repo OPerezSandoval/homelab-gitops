@@ -5,6 +5,7 @@ namespace: medtracker-dev
 
 resources:
   - ../../../base/medtracker/base
+  - ingress.yaml
 
 replicas:
   - name: medtracker

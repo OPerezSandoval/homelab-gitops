@@ -6,6 +6,7 @@ namespace: medtracker-prod
 resources:
   - ../../../base/medtracker/base
   - pvc.yaml
+  - ingress.yaml
 
 replicas:
   - name: medtracker
