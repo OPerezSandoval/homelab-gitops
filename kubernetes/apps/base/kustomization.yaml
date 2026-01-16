@@ -12,3 +12,4 @@ resources:
   - kustomize-demo
   - medtracker
   - strimzi
+  - kafka

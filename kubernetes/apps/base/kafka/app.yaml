@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kafka
+  name: kafka-demo
   namespace: argo-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/base/kafka
+    path: kubernetes/apps/overlays/dev/kafka
   destination:
     server: https://kubernetes.default.svc
     namespace: kafka
