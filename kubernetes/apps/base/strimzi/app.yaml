@@ -16,6 +16,9 @@ spec:
         watchAnyNamespace: false
         watchNamespaces:
           - kafka
+        extraEnvs:
+          - name: STRIMZI_KUBERNETES_VERSION
+            value: "major=1,minor=34"
   destination:
     server: https://kubernetes.default.svc
     namespace: strimzi-operator
