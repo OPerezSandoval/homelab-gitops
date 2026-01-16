@@ -1,7 +1,7 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: demo-events
+  name: demo-messages
   namespace: kafka
   labels:
     strimzi.io/cluster: demo-cluster
@@ -9,7 +9,7 @@ spec:
   partitions: 3
   replicas: 1
   config:
-    retention.ms: 604800000  # 7 days
+    retention.ms: 604800000 
     cleanup.policy: delete
 ---
 apiVersion: kafka.strimzi.io/v1beta2
@@ -37,5 +37,5 @@ spec:
   partitions: 1
   replicas: 1
   config:
-    retention.ms: 259200000  # 3 days
+    retention.ms: 259200000 
     cleanup.policy: delete
