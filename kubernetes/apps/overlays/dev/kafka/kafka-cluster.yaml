@@ -30,10 +30,10 @@ spec:
       class: nfs-storage
     resources:
       requests:
-        memory: 1Gi
+        memory: 3Gi
         cpu: 500m
       limits:
-        memory: 2Gi
+        memory: 8Gi
         cpu: 1000m
   zookeeper:
     replicas: 1
@@ -43,10 +43,10 @@ spec:
       class: nfs-storage
     resources:
       requests:
-        memory: 512Mi
+        memory: 3Gi
         cpu: 250m
       limits:
-        memory: 1Gi
+        memory: 8Gi
         cpu: 500m
   entityOperator:
     topicOperator: {}
