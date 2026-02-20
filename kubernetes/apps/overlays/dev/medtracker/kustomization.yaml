@@ -11,6 +11,10 @@ replicas:
   - name: medtracker
     count: 1
 
+images:
+  - name: operez11/medtracker
+    newTag: dev
+
 patchesJson6902:
   - target:
       group: apps
