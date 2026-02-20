@@ -14,4 +14,4 @@ replicas:
 
 images:
   - name: operez11/medtracker
-    newTag: "1.0.4"
+    newTag: "v1.2.0"
