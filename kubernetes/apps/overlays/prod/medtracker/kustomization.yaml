@@ -11,3 +11,7 @@ resources:
 replicas:
   - name: medtracker
     count: 2
+
+images:
+  - name: operez11/medtracker
+    newTag: "1.0.4"
