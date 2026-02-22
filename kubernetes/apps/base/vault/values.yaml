@@ -1,19 +1,14 @@
+global:
+  enabled: true
+
+injector:
+  enabled: true
+
 server:
-  # Use injector for secrets
-  injector:
-    enabled: true
+  image:
+    repository: "hashicorp/vault"
+    tag: "1.17.2"
   
-  ha:
-    enabled: false
-  
-  # Data storage with NFS
-  dataStorage:
-    enabled: true
-    size: 10Gi
-    storageClass: nfs-storage  
-    accessMode: ReadWriteOnce
-  
-  # Standalone config
   standalone:
     enabled: true
     config: |
@@ -29,14 +24,23 @@ server:
         path = "/vault/data"
       }
   
-  # Service configuration
+  ha:
+    enabled: false
+  
   service:
     enabled: true
     type: NodePort
     nodePort: 30820
-    port: 8200
+  
+  # Data storage 
+  dataStorage:
+    enabled: true
+    size: 1Gi
+    mountPath: "/vault/data"
+    storageClass: "nfs-storage"
+    accessMode: ReadWriteOnce
 
 ui:
   enabled: true
-  serviceType: NodePort
+  serviceType: "NodePort"
   externalPort: 8200
