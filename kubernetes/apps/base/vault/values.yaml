@@ -1,0 +1,22 @@
+server:
+  # Dev mode for homelab (stores in memory, auto-unseals)
+  # For production, you'd use persistent storage
+  dev:
+    enabled: true
+    devRootToken: "root"  # Default root token for dev mode
+  
+  service:
+    type: NodePort
+    nodePort: 30820
+  
+  ha:
+    enabled: false
+  
+  # Inject Vault agent for easy secret injection
+  injector:
+    enabled: true
+
+ui:
+  enabled: true
+  serviceType: NodePort
+  externalPort: 8200
