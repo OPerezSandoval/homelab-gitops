@@ -13,3 +13,5 @@ resources:
   - medtracker
   - strimzi
   - kafka
+  - vault
+  - external-secrets-operator
