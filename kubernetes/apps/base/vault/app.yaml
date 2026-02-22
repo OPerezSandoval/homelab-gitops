@@ -10,8 +10,47 @@ spec:
     chart: vault
     targetRevision: 0.28.1
     helm:
-      valueFiles:
-        - values.yaml
+      values: |
+        global:
+          enabled: true
+        
+        injector:
+          enabled: true
+        
+        server:
+          standalone:
+            enabled: true
+            config: |
+              ui = true
+              
+              listener "tcp" {
+                tls_disable = 1
+                address = "[::]:8200"
+                cluster_address = "[::]:8201"
+              }
+              
+              storage "file" {
+                path = "/vault/data"
+              }
+          
+          ha:
+            enabled: false
+          
+          service:
+            enabled: true
+            type: NodePort
+            nodePort: 30820
+          
+          dataStorage:
+            enabled: true
+            size: 10Gi
+            mountPath: "/vault/data"
+            storageClass: nfs-storage
+            accessMode: ReadWriteOnce
+        
+        ui:
+          enabled: true
+          serviceType: NodePort
   destination:
     server: https://kubernetes.default.svc
     namespace: vault
