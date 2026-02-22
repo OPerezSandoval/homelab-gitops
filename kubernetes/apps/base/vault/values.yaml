@@ -1,46 +1,46 @@
-global:
-  enabled: true
+# global:
+#   enabled: true
 
-injector:
-  enabled: true
+# injector:
+#   enabled: true
 
-server:
-  image:
-    repository: "hashicorp/vault"
-    tag: "1.17.2"
+# server:
+#   image:
+#     repository: "hashicorp/vault"
+#     tag: "1.17.2"
   
-  standalone:
-    enabled: true
-    config: |
-      ui = true
+#   standalone:
+#     enabled: true
+#     config: |
+#       ui = true
       
-      listener "tcp" {
-        tls_disable = 1
-        address = "[::]:8200"
-        cluster_address = "[::]:8201"
-      }
+#       listener "tcp" {
+#         tls_disable = 1
+#         address = "[::]:8200"
+#         cluster_address = "[::]:8201"
+#       }
       
-      storage "file" {
-        path = "/vault/data"
-      }
+#       storage "file" {
+#         path = "/vault/data"
+#       }
   
-  ha:
-    enabled: false
+#   ha:
+#     enabled: false
   
-  service:
-    enabled: true
-    type: NodePort
-    nodePort: 30820
+#   service:
+#     enabled: true
+#     type: NodePort
+#     nodePort: 30820
   
-  # Data storage 
-  dataStorage:
-    enabled: true
-    size: 1Gi
-    mountPath: "/vault/data"
-    storageClass: "nfs-storage"
-    accessMode: ReadWriteOnce
+#   # Data storage 
+#   dataStorage:
+#     enabled: true
+#     size: 1Gi
+#     mountPath: "/vault/data"
+#     storageClass: "nfs-storage"
+#     accessMode: ReadWriteOnce
 
-ui:
-  enabled: true
-  serviceType: "NodePort"
-  externalPort: 8200
+# ui:
+#   enabled: true
+#   serviceType: "NodePort"
+#   externalPort: 8200
