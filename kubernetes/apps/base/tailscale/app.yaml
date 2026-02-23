@@ -11,12 +11,17 @@ spec:
     targetRevision: 1.78.3
     helm:
       parameters:
+        # Reference existing secret instead of hardcoding
         - name: oauth.clientId
-          value: "kodn1z5P8F11CNTRL"
+          value: "" 
         - name: oauth.clientSecret
-          value: "tskey-client-kodn1z5P8F11CNTRL-rzdpL8PrGBefNHZuAzT2CewycYAbyFdri"
+          value: "" 
         - name: operatorConfig.hostname
           value: "tailscale-operator"
+      values: |
+        oauth:
+          clientIdFromSecret: true
+          clientSecretFromSecret: true
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
