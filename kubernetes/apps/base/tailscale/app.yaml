@@ -10,18 +10,12 @@ spec:
     chart: tailscale-operator
     targetRevision: 1.78.3
     helm:
-      parameters:
-        # Reference existing secret instead of hardcoding
-        - name: oauth.clientId
-          value: "" 
-        - name: oauth.clientSecret
-          value: "" 
-        - name: operatorConfig.hostname
-          value: "tailscale-operator"
       values: |
         oauth:
           clientIdFromSecret: true
           clientSecretFromSecret: true
+        operatorConfig:
+          hostname: "tailscale-operator"
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
