@@ -23,7 +23,7 @@ spec:
             - name: N8N_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: n8n-secrets
+                  name: N8N_ENCRYPTION_KEY
                   key: encryption_key
           persistence:
             enabled: true
