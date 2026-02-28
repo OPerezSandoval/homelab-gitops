@@ -18,6 +18,7 @@ spec:
               protocol: "https"
               editor_base_url: "https://n8n.balinese-pentatonic.ts.net"
               webhook_url: "https://n8n.balinese-pentatonic.ts.net"
+              trust_proxy: true
           secret: {}
           extraEnv:
             N8N_ENCRYPTION_KEY:
@@ -25,7 +26,6 @@ spec:
                 secretKeyRef:
                   name: n8n-secrets
                   key: N8N_ENCRYPTION_KEY
-            N8N_TRUST_PROXY: "true"
           persistence:
             enabled: true
             type: dynamic
