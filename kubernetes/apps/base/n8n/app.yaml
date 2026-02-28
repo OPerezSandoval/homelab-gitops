@@ -25,6 +25,7 @@ spec:
                 secretKeyRef:
                   name: n8n-secrets
                   key: N8N_ENCRYPTION_KEY
+            N8N_TRUST_PROXY: "true"
           persistence:
             enabled: true
             type: dynamic
