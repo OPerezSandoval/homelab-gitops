@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: n8n
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://8gears.container-registry.com/chartrepo/library
+    targetRevision: "*"
+    chart: n8n
+  helm:
+    values: |
+      n8n:
+        extraEnv:
+          N8N_ENCRYPTION_KEY:
+            valueFrom:
+              secretKeyRef:
+                name: n8n-secrets
+                key: N8N_ENCRYPTION_KEY
+          WEBHOOK_URL: "https://n8n.balinese-pentatonic.ts.net/"
+      persistence:
+        enabled: true
+        size: 5Gi
+        storageClass: nfs-storage
+      ingress:
+        enabled: true
+        className: tailscale
+        hosts:
+          - host: n8n
+            paths:
+              - path: /
+        tls:
+          - hosts:
+              - n8n
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          memory: 512Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: n8n
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
