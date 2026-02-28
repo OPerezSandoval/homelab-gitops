@@ -6,39 +6,49 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://8gears.container-registry.com/chartrepo/library
-    targetRevision: "*"
+    repoURL: oci://8gears.container-registry.com/library/n8n
+    targetRevision: "2.0.1"
     chart: n8n
-  helm:
-    values: |
-      n8n:
-        extraEnv:
-          N8N_ENCRYPTION_KEY:
-            valueFrom:
-              secretKeyRef:
-                name: n8n-secrets
-                key: N8N_ENCRYPTION_KEY
-          WEBHOOK_URL: "https://n8n.balinese-pentatonic.ts.net/"
-      persistence:
-        enabled: true
-        size: 5Gi
-        storageClass: nfs-storage
-      ingress:
-        enabled: true
-        className: tailscale
-        hosts:
-          - host: n8n
-            paths:
-              - path: /
-        tls:
-          - hosts:
-              - n8n
-      resources:
-        requests:
-          cpu: 100m
-          memory: 256Mi
-        limits:
-          memory: 512Mi
+    helm:
+      values: |
+        main:
+          config:
+            n8n:
+              host: "n8n.balinese-pentatonic.ts.net"
+              protocol: "https"
+              editor_base_url: "https://n8n.balinese-pentatonic.ts.net"
+              webhook_url: "https://n8n.balinese-pentatonic.ts.net"
+          secret: {}
+          extraEnv:
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secrets
+                  key: encryption_key
+          persistence:
+            enabled: true
+            type: dynamic
+            storageClass: nfs-storage
+            size: 5Gi
+            accessModes:
+              - ReadWriteOnce
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+        ingress:
+          enabled: true
+          className: tailscale
+          hosts:
+            - host: n8n
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+            - hosts:
+                - n8n
   destination:
     server: https://kubernetes.default.svc
     namespace: n8n
