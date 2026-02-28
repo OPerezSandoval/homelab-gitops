@@ -19,6 +19,7 @@ spec:
               editor_base_url: "https://n8n.balinese-pentatonic.ts.net"
               webhook_url: "https://n8n.balinese-pentatonic.ts.net"
               trust_proxy: true
+              port: 5678
           secret: {}
           extraEnv:
             N8N_ENCRYPTION_KEY:
