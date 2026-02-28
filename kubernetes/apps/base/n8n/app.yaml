@@ -20,11 +20,11 @@ spec:
               webhook_url: "https://n8n.balinese-pentatonic.ts.net"
           secret: {}
           extraEnv:
-            - name: N8N_ENCRYPTION_KEY
+            N8N_ENCRYPTION_KEY:
               valueFrom:
                 secretKeyRef:
-                  name: N8N_ENCRYPTION_KEY
-                  key: encryption_key
+                  name: n8n-secrets
+                  key: N8N_ENCRYPTION_KEY
           persistence:
             enabled: true
             type: dynamic
