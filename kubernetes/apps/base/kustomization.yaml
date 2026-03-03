@@ -11,8 +11,6 @@ resources:
   - helm-demo
   - kustomize-demo
   - medtracker
-  - strimzi
-  - kafka
   - vault
   - external-secrets-operator
   - n8n
