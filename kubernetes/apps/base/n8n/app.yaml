@@ -34,6 +34,9 @@ spec:
             size: 5Gi
             accessModes:
               - ReadWriteOnce
+          service:
+            type: NodePort
+            port: 5678
           resources:
             requests:
               cpu: 100m
