@@ -16,8 +16,8 @@ spec:
             n8n:
               host: "n8n.balinese-pentatonic.ts.net"
               protocol: "https"
-              editor_base_url: "https://n8n.balinese-pentatonic.ts.net"
-              webhook_url: "https://n8n.balinese-pentatonic.ts.net"
+              editor_base_url: "https://n8n.archeflow.com"
+              webhook_url: "https://n8n.archeflow.com"
               trust_proxy: true
               port: 5678
           secret: {}
