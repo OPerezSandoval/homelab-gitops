@@ -14,7 +14,7 @@ spec:
         main:
           config:
             n8n:
-              host: "n8n.balinese-pentatonic.ts.net"
+              host: "n8n.archeflow.com"
               protocol: "https"
               editor_base_url: "https://n8n.archeflow.com"
               webhook_url: "https://n8n.archeflow.com"
