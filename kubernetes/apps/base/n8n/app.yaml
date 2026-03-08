@@ -42,6 +42,8 @@ spec:
               memory: 512Mi
         ingress:
           enabled: true
+          annotations:
+            tailscale.com/funnel: "true"
           className: tailscale
           hosts:
             - host: n8n
