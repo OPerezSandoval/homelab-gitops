@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/base/cloudflare
+    path: kubernetes/apps/base/cloudflare/base
   destination:
     server: https://kubernetes.default.svc
     namespace: cloudflare
