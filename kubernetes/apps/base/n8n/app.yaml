@@ -29,6 +29,8 @@ spec:
                 secretKeyRef:
                   name: n8n-secrets
                   key: N8N_ENCRYPTION_KEY
+            N8N_REINSTALL_MISSING_PACKAGES:
+              value: "true"
           persistence:
             enabled: true
             type: dynamic
