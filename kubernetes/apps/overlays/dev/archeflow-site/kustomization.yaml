@@ -13,4 +13,4 @@ replicas:
 
 images:
   - name: ghcr.io/operezsandoval/archeflow-site
-    newTag: "dev-latest"
+    newTag: "dev-b316070"
