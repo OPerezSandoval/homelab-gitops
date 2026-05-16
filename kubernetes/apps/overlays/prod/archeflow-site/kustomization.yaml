@@ -12,5 +12,5 @@ replicas:
     count: 2
 
 images:
-  - name: ghcr.io/operezsandoval/archeflow-site
+  - name: operez11/archeflow-site
     newTag: "latest"
