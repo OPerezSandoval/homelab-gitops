@@ -12,5 +12,5 @@ replicas:
     count: 1
 
 images:
-  - name: ghcr.io/operezsandoval/archeflow-site
-    newTag: "dev-b316070"
+  - name: operez11/archeflow-site
+    newTag: "dev-latest"

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: archeflow-site
-          image: ghcr.io/operezsandoval/archeflow-site:dev-latest
+          image: operez11/archeflow-site:dev-latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
