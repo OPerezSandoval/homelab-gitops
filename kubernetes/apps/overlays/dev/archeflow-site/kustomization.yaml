@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: archeflow-dev
+
+resources:
+  - ../../../base/archeflow-site/base
+  - ingress.yaml
+
+replicas:
+  - name: archeflow-site
+    count: 1
+
+images:
+  - name: ghcr.io/operezsandoval/archeflow-site
+    newTag: "dev-latest"
