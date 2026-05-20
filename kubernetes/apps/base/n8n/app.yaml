@@ -12,7 +12,7 @@ spec:
     helm:
       values: |
         image:
-          tag: "2.11.3" 
+          tag: "2.21.4" 
         main:
           config:
             n8n:
