@@ -2,16 +2,37 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: gitops-dev
-  namespace: argocd
+  namespace: argo-gitops
 spec:
   project: default
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/overlays/dev
+    path: kubernetes/apps/base
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: argo-gitops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: infra
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+    targetRevision: main
+    path: kubernetes/infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-gitops
   syncPolicy:
     automated:
       prune: true
