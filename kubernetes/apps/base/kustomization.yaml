@@ -6,7 +6,6 @@ resources:
   - metallb
   - metallb-config
   - tailscale
-  - headlamp
   - helm-demo
   - kustomize-demo
   - medtracker
