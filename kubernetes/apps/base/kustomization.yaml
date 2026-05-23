@@ -3,11 +3,9 @@ kind: Kustomization
 
 resources:
   - metallb-config
-  - tailscale
   - helm-demo
   - kustomize-demo
   - medtracker
   - vault
-  - external-secrets-operator
   - n8n
   - archeflow-site
