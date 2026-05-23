@@ -6,5 +6,6 @@ resources:
   - external-secrets-operator
   - headlamp
   - metallb
+  - metallb-config
   - metrics-server
   - tailscale

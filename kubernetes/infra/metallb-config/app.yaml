@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
     targetRevision: main
-    path: kubernetes/apps/base/metallb-config/ipaddresspool.yaml
+    path: kubernetes/infra/metallb-config/base
   destination:
     server: https://kubernetes.default.svc
     namespace: metallb
