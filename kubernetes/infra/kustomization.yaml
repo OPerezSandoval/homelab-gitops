@@ -3,6 +3,8 @@ kind: Kustomization
 
 resources:
   - cloudflare
+  - external-secrets-operator
   - headlamp
   - metallb
   - metrics-server
+  - tailscale
