@@ -5,6 +5,5 @@ resources:
   - helm-demo
   - kustomize-demo
   - medtracker
-  - vault
   - n8n
   - archeflow-site
