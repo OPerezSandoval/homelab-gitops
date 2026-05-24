@@ -5,13 +5,13 @@ metadata:
   namespace: argo-gitops
 spec:
   project: default
-  source:
-    repoURL: https://helm.releases.hashicorp.com
-    chart: vault
-    targetRevision: 0.28.1
-    helm:
-      valueFiles:
-        - values.yaml
+  sources:
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: vault
+      targetRevision: 0.28.1
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/vault/extras
   destination:
     server: https://kubernetes.default.svc
     namespace: vault
