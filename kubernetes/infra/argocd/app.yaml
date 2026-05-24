@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops
     targetRevision: main
-    path: kubernetes/apps/base/argocd
+    path: kubernetes/infra/argocd
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-gitops
