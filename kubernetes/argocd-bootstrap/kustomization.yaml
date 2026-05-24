@@ -1,6 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# All resources rendered here land in argo-gitops. The upstream install manifest
+# bakes namespace: argocd into every resource; this rewrites them.
+namespace: argo-gitops
+
+# Pin the ArgoCD version here. To upgrade: bump the v3.4.2 tag in the URL below,
+# open a PR, merge. Application/argocd auto-syncs and rolls the upgrade in.
+# Reference: https://github.com/argoproj/argo-cd/releases
 resources:
-  - install.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/install.yaml
   - cluster-admin-binding.yaml
