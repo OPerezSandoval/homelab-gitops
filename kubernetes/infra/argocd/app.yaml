@@ -8,13 +8,55 @@ spec:
   source:
     repoURL: https://github.com/OPerezSandoval/homelab-gitops
     targetRevision: main
-    path: kubernetes/infra/argocd
+    path: kubernetes/argocd-bootstrap
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-gitops
   syncPolicy:
     automated:
-      prune: false  
+      # Do NOT prune — never let this App delete its own install resources via
+      # a transient render error. Manual cleanup only.
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # ServerSideApply avoids "metadata.annotations: Too long" errors common
+      # with ArgoCD's CRDs and resources that have many annotations.
+      - ServerSideApply=true
+  # Protect live config from being reverted to upstream defaults.
+  # argocd-cm and argocd-rbac-cm hold cluster-specific config (resource
+  # exclusions, ignoreResourceUpdates, RBAC policies, repo creds, etc.)
+  # that we don't yet have captured in Git. Until ticket #15 ports those
+  # into kustomize patches here, ignore the data sections entirely.
+  # argocd-secret holds the admin password hash and TLS material that
+  # rotates outside Git's view.
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: argocd-cm
+      jsonPointers:
+        - /data
+    - group: ""
+      kind: ConfigMap
+      name: argocd-rbac-cm
+      jsonPointers:
+        - /data
+    - group: ""
+      kind: ConfigMap
+      name: argocd-cmd-params-cm
+      jsonPointers:
+        - /data
+    - group: ""
+      kind: Secret
+      name: argocd-secret
+      jsonPointers:
+        - /data
+    # Webhook caBundles are populated dynamically by the cluster
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jsonPointers:
+        - /webhooks/0/clientConfig/caBundle
