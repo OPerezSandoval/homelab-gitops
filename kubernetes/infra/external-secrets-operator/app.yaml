@@ -5,10 +5,13 @@ metadata:
   namespace: argo-gitops
 spec:
   project: default
-  source:
-    repoURL: https://charts.external-secrets.io
-    chart: external-secrets
-    targetRevision: 0.10.6
+  sources:
+    - repoURL: https://charts.external-secrets.io
+      chart: external-secrets
+      targetRevision: 0.10.6
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/external-secrets-operator/extras
   destination:
     server: https://kubernetes.default.svc
     namespace: external-secrets-system

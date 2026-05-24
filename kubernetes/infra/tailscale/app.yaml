@@ -5,17 +5,20 @@ metadata:
   namespace: argo-gitops
 spec:
   project: default
-  source:
-    repoURL: https://pkgs.tailscale.com/helmcharts
-    chart: tailscale-operator
-    targetRevision: 1.78.3
-    helm:
-      values: |
-        oauth:
-          clientIdFromSecret: true
-          clientSecretFromSecret: true
-        operatorConfig:
-          hostname: "tailscale-operator"
+  sources:
+    - repoURL: https://pkgs.tailscale.com/helmcharts
+      chart: tailscale-operator
+      targetRevision: 1.78.3
+      helm:
+        values: |
+          oauth:
+            clientIdFromSecret: true
+            clientSecretFromSecret: true
+          operatorConfig:
+            hostname: "tailscale-operator"
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/tailscale/extras
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale
