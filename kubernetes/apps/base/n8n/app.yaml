@@ -5,58 +5,61 @@ metadata:
   namespace: argo-gitops
 spec:
   project: default
-  source:
-    repoURL: oci://8gears.container-registry.com/library/n8n
-    targetRevision: "2.0.1"
-    chart: n8n
-    helm:
-      values: |
-        image:
-          tag: "2.21.4" 
-        main:
-          config:
-            n8n:
-              host: "n8n.archeflow.com"
-              protocol: "https"
-              editor_base_url: "https://n8n.archeflow.com"
-              webhook_url: "https://n8n.archeflow.com"
-              trust_proxy: true
-              port: 5678
-          secret: {}
-          extraEnv:
-            N8N_ENCRYPTION_KEY:
-              valueFrom:
-                secretKeyRef:
-                  name: n8n-secrets
-                  key: N8N_ENCRYPTION_KEY
-            N8N_REINSTALL_MISSING_PACKAGES:
-              value: "true"
-          persistence:
+  sources:
+    - repoURL: oci://8gears.container-registry.com/library/n8n
+      targetRevision: "2.0.1"
+      chart: n8n
+      helm:
+        values: |
+          image:
+            tag: "2.21.4"
+          main:
+            config:
+              n8n:
+                host: "n8n.archeflow.com"
+                protocol: "https"
+                editor_base_url: "https://n8n.archeflow.com"
+                webhook_url: "https://n8n.archeflow.com"
+                trust_proxy: true
+                port: 5678
+            secret: {}
+            extraEnv:
+              N8N_ENCRYPTION_KEY:
+                valueFrom:
+                  secretKeyRef:
+                    name: n8n-secrets
+                    key: N8N_ENCRYPTION_KEY
+              N8N_REINSTALL_MISSING_PACKAGES:
+                value: "true"
+            persistence:
+              enabled: true
+              type: dynamic
+              storageClass: nfs-storage
+              size: 5Gi
+              accessModes:
+                - ReadWriteOnce
+            resources:
+              requests:
+                cpu: 100m
+                memory: 1024Mi
+              limits:
+                memory: 2048Mi
+          ingress:
             enabled: true
-            type: dynamic
-            storageClass: nfs-storage
-            size: 5Gi
-            accessModes:
-              - ReadWriteOnce
-          resources:
-            requests:
-              cpu: 100m
-              memory: 1024Mi
-            limits:
-              memory: 2048Mi
-        ingress:
-          enabled: true
-          annotations:
-            tailscale.com/funnel: "true"
-          className: tailscale
-          hosts:
-            - host: n8n
-              paths:
-                - path: /
-                  pathType: Prefix
-          tls:
-            - hosts:
-                - n8n
+            annotations:
+              tailscale.com/funnel: "true"
+            className: tailscale
+            hosts:
+              - host: n8n
+                paths:
+                  - path: /
+                    pathType: Prefix
+            tls:
+              - hosts:
+                  - n8n
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/apps/base/n8n/extras
   destination:
     server: https://kubernetes.default.svc
     namespace: n8n

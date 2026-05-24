@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads-dev
+  namespace: argo-gitops
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+        revision: main
+        directories:
+          # Scan every overlay folder under dev/ — each becomes an Application
+          - path: kubernetes/apps/overlays/dev/*
+          # Exclusions: apps that don't fit the kustomize-overlay pattern
+          # (helm-demo uses a Helm chart with overlay values, kept as a manual
+          # app.yaml. kafka is an orphan demo folder kept for reference.)
+          - path: kubernetes/apps/overlays/dev/helm-demo
+            exclude: true
+          - path: kubernetes/apps/overlays/dev/kafka
+            exclude: true
+  template:
+    metadata:
+      name: '{{.path.basename}}-dev'
+      namespace: argo-gitops
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+        targetRevision: main
+        path: '{{.path.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.path.basename}}-dev'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

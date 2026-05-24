@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: workloads-prod
+  namespace: argo-gitops
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+        revision: main
+        directories:
+          - path: kubernetes/apps/overlays/prod/*
+          - path: kubernetes/apps/overlays/prod/helm-demo
+            exclude: true
+  template:
+    metadata:
+      name: '{{.path.basename}}-prod'
+      namespace: argo-gitops
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+        targetRevision: main
+        path: '{{.path.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.path.basename}}-prod'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
