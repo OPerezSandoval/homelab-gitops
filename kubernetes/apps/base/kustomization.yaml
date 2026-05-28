@@ -2,8 +2,12 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # ApplicationSets auto-generate Applications by scanning overlays/{dev,prod}/*
+  # Add a new workload by creating overlay folders only — no app.yaml needed.
+  - applicationsets
+
+  # Exceptions: apps that don't fit the standard kustomize-overlay pattern.
+  # helm-demo uses a Helm chart with per-env overlay values.yaml.
+  # n8n is a single-instance Helm chart with no dev/prod split.
   - helm-demo
-  - kustomize-demo
-  - medtracker
   - n8n
-  - archeflow-site
