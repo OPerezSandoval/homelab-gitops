@@ -5,25 +5,31 @@ GitOps repository managing a single Talos Kubernetes cluster. ArgoCD pulls from 
 ## Architecture
 
 ```
-                       Cluster (Talos, single node)
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              │                     │                     │
-       Application/apps      Application/infra     Application/argocd
-           (parent)              (parent)            (self-managing)
-              │                     │
-              │ renders             │ renders
-              ▼                     ▼
-   kubernetes/apps/base/    kubernetes/infra/
-              │                     │
-              ▼                     ▼
-   9 workload Apps          8 platform Apps
+                          Cluster (Talos, single node)
+                                       │
+                 ┌─────────────────────┼─────────────────────┐
+                 │                     │                     │
+          Application/apps      Application/infra     Application/argocd
+              (parent)              (parent)         (self-managing; also
+                 │                     │              manages ArgoCD install)
+                 │ renders             │ renders
+                 ▼                     ▼
+      kubernetes/apps/base/      kubernetes/infra/
+                 │                     │
+                 ▼                     ▼
+      2 ApplicationSets         8 platform Apps
+      + 3 manual Apps
+                 │
+                 │ auto-generate
+                 ▼
+                Apps
 ```
 
-Two umbrella Applications split responsibility:
+Three top-level Applications:
 
-- **`apps`** owns user workloads. Each workload typically has `-dev` and `-prod` Applications pointing at per-env overlays.
-- **`infra`** owns platform components — ingress, secrets, networking, observability.
+- **`apps`** owns user apps. Two ApplicationSets scan `overlays/{dev,prod}/*` and auto-generate Applications for every overlay folder. A few exceptions (helm-demo, n8n) keep manual `app.yaml` because they don't fit the pure kustomize-overlay pattern.
+- **`infra`** owns platform components - ingress, secrets, networking, metrics.
+- **`argocd`** is self-managing and also manages the ArgoCD install itself via a remote kustomize base pinned to a specific upstream version. Upgrading ArgoCD = bump the version in one line.
 
 There is **one** physical cluster. Dev/prod separation happens at the namespace level via Kustomize overlays, not at the cluster level.
 
@@ -32,60 +38,71 @@ There is **one** physical cluster. Dev/prod separation happens at the namespace 
 ```
 clusters/
   talos-dev/
-    apps.yaml             ← Bootstrap manifest: declares the apps + infra
+    apps.yaml             ← Bootstrap manifest: declares the apps + infra Applications
     kustomization.yaml
 
 kubernetes/
-  argocd-bootstrap/       ← One-time install: ArgoCD + cluster-admin ClusterRoleBinding
-    install.yaml
+  argocd-bootstrap/       ← One-time install + ongoing source for the argocd Application
+    kustomization.yaml    ← References upstream ArgoCD install (pinned version) + binding
     cluster-admin-binding.yaml
-    kustomization.yaml
 
   infra/                  ← Platform layer, owned by Application/infra
     kustomization.yaml    ← Lists each infra Application folder
-    argocd/               
+    argocd/               ← Self-managing Application (points at ../argocd-bootstrap)
     cloudflare/           ← Cloudflared tunnel (Git source)
     external-secrets-operator/
+      extras/             ← ClusterSecretStore (multi-source Git extras)
     headlamp/
-    metallb/              
-    metallb-config/       
+    metallb/
+    metallb-config/
+      base/               ← IPAddressPool + L2Advertisement (Git source path)
     metrics-server/
-    tailscale/            ← Primary ingress controller
+    tailscale/
+      extras/             ← ExternalSecret for tailscale operator OAuth
     vault/
+      extras/             ← Vault UI Ingress
     cert-manager/         
     monitoring/           
 
-  apps/                   ← User workloads, owned by Application/apps
+  apps/                   
+   Application/apps
     base/
-      kustomization.yaml  ← Lists each workload Application folder
-      archeflow-site/     ← Per-app: app.yaml (Applications) + base/ (manifests)
-      helm-demo/          
-      kustomize-demo/     
-      n8n/
-      kafka/  strimzi/    
-    overlays/.            ← Per-env Kustomize overlays (namespace, image tag, replicas, ingress)
-      dev/<app>/          
-      prod/<app>/         
+      kustomization.yaml  ← Lists applicationsets, helm-demo, n8n
+      applicationsets/    ← Two ApplicationSets that auto-generate workload Applications
+      archeflow-site/
+        base/             ← Raw manifests (referenced by overlays)
+      kustomize-demo/
+        base/
+      medtracker/
+        base/
+      helm-demo/          ← Exception: Helm chart + per-env values.yaml
+      n8n/                ← Exception: single-instance Helm chart
+        extras/           ← n8n ExternalSecret
+      kafka/  strimzi/    ← Orphan demo folders, not in kustomization
+    overlays/
+      dev/<app>/          ← Per-env Kustomize overlays (namespace, image tag, replicas, ingress)
+      prod/<app>/         ← Same structure
 ```
 
 ## Tooling
 
-- **ArgoCD v3.2+** — pulls from `main`, runs in the `argo-gitops` namespace.
+- **ArgoCD v3.4+** — pulls from `main`, runs in the `argo-gitops` namespace. The ArgoCD install itself is GitOps-managed via a remote kustomize base.
+- **ApplicationSet** — auto-discovers workloads. Add an overlay folder, get an Application for free.
 - **Kustomize** — directory composition for umbrellas and overlays.
-- **Helm** — used via ArgoCD Helm source for third-party charts (Vault, ESO, Tailscale, etc.).
+- **Helm** — used via ArgoCD Helm source for third-party charts (Vault, ESO, Tailscale, etc.). Three apps use multi-source (vault, external-secrets, tailscale-operator, n8n) — chart + Git extras.
 - **Vault + External Secrets Operator** — Vault is the secret source of truth; ESO renders `ExternalSecret` resources into Kubernetes `Secret`s.
 - **Talos Linux** — cluster OS. CNI is **Cilium**, managed at the Talos layer (not via this repo).
 - **Tailscale operator** — primary ingress (`ingressClassName: tailscale`), backed by MagicDNS hostnames on the tailnet.
-- **Cloudflared tunnel** — public exposure for public urls .
+- **Cloudflared tunnel** — public exposure for public hostnames.
 
 ## Bootstrapping a fresh cluster
 
 ```bash
-# 1. Install ArgoCD + ClusterRoleBinding
+# 1. Install ArgoCD + cluster-admin binding (rendered from upstream + local patch)
 kubectl apply -k kubernetes/argocd-bootstrap
 
 # 2. Wait for ArgoCD pods to come up
-kubectl -n argo-gitops wait --for=condition=Available deployment --all 
+kubectl -n argo-gitops wait --for=condition=Available deployment --all
 
 # 3. Register the umbrella Applications (apps + infra)
 kubectl apply -f clusters/talos-dev/apps.yaml
@@ -94,9 +111,33 @@ kubectl apply -f clusters/talos-dev/apps.yaml
 kubectl -n argo-gitops get app -w
 ```
 
-Vault comes up sealed on first boot — see [Disaster recovery](#disaster-recovery).
+Vault comes up sealed on first boot 
 
 ## Adding a new app
+
+### User applications (kustomize-overlay pattern)
+
+For most applications (deployment + service + per-env overlay). **No `app.yaml` needed** — ApplicationSet auto-generates it from the overlay folder.
+
+```
+kubernetes/apps/base/<app>/
+  base/
+    deployment.yaml
+    service.yaml
+    kustomization.yaml
+
+kubernetes/apps/overlays/dev/<app>/
+  kustomization.yaml      ← References ../../../base/<app>/base, sets namespace, image tag, replicas
+  ingress.yaml            ← Optional tailscale Ingress
+
+kubernetes/apps/overlays/prod/<app>/
+  kustomization.yaml      ← Same shape, prod values
+  ingress.yaml
+```
+
+Open PR, merge. `ApplicationSet/workloads-dev` and `workloads-prod` pick up the new overlay folders and generate `Application/<app>-dev` and `<app>-prod` automatically.
+
+To remove: delete the overlay folders, merge. ApplicationSet auto-deletes the Applications.
 
 ### Third-party Helm chart (infrastructure)
 
@@ -113,31 +154,22 @@ mkdir -p kubernetes/infra/<chart>
      - app.yaml
    ```
 3. Add `<chart>` to `kubernetes/infra/kustomization.yaml` under `resources:`.
-4. Open PR. After merge, the `infra` app creates the new Application automatically.
+4. If the chart needs extra Git-rendered resources (Ingress, ExternalSecret, ConfigMap, etc.), use a multi-source Application — see `kubernetes/infra/vault/app.yaml` as the canonical example. Drop the raw manifests under `kubernetes/infra/<chart>/extras/` with their own `kustomization.yaml`.
+5. Open PR. After merge, the `infra` umbrella creates the new Application automatically.
 
-### User workload (with dev/prod environments)
+## Upgrading ArgoCD
 
-Mirror the `medtracker` or `archeflow-site` pattern:
+One-line PR:
 
-```
-kubernetes/apps/base/<app>/
-  app.yaml              ← Two Applications (-dev and -prod) pointing at overlays
-  kustomization.yaml    ← resources: [app.yaml]
-  base/
-    deployment.yaml
-    service.yaml
-    kustomization.yaml
-
-kubernetes/apps/overlays/dev/<app>/
-  kustomization.yaml    ← References ../../../base/<app>/base, sets namespace, image tag, replicas
-  ingress.yaml          ← Optional tailscale Ingress
-
-kubernetes/apps/overlays/prod/<app>/
-  kustomization.yaml    ← Same shape, prod values
-  ingress.yaml
+```diff
+# kubernetes/argocd-bootstrap/kustomization.yaml
+- - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/install.yaml
++ - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.0/manifests/install.yaml
 ```
 
-Then add `<app>` to `kubernetes/apps/base/kustomization.yaml` under `resources:`. After merge, the `apps` umbrella registers both Applications.
+Open PR, merge. `Application/argocd` auto-syncs and rolls the new version in. ArgoCD upgrades itself.
+
+Live `argocd-cm` / `argocd-rbac-cm` / `argocd-cmd-params-cm` / `argocd-secret` data is preserved across upgrades via `ignoreDifferences` on the Application — that custom config isn't yet captured in Git.
 
 ## Secrets
 
@@ -158,7 +190,7 @@ Vault (in-cluster)
 To add a new secret:
 
 1. Write to Vault: `vault kv put secret/<app>/<key> value=...`
-2. In the app folder, add an `ExternalSecret`:
+2. In the app folder's `extras/`, add an `ExternalSecret`:
    ```yaml
    apiVersion: external-secrets.io/v1beta1
    kind: ExternalSecret
