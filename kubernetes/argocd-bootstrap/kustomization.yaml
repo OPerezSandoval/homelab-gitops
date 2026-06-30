@@ -11,3 +11,4 @@ namespace: argo-gitops
 resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/install.yaml
   - cluster-admin-binding.yaml
+  - argocd-ingress.yaml
