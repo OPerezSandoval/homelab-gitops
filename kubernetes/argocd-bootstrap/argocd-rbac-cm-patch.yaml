@@ -1,0 +1,12 @@
+# Strategic-merge patch: maps the Authentik "argocd-admins" group to ArgoCD's
+# built-in admin role. Everyone else (incl. authenticated OIDC users) is readonly.
+# The local `admin` account still works independently of this.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argo-gitops
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    g, argocd-admins, role:admin
