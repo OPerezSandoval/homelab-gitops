@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: authentik-db
+  namespace: authentik
+spec:
+  # Single-node homelab: one instance. Bump to 3 once there are >1 worker nodes.
+  instances: 1
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 5Gi
+    # NOTE: nfs-storage is the only StorageClass today. Postgres prefers block/local
+    # storage; migrate to a local-path SC when one is added (production hardening).
+    storageClass: nfs-storage
+  bootstrap:
+    initdb:
+      database: authentik
+      owner: authentik
+      # Use the ESO-synced basic-auth secret so the app user password matches what
+      # Authentik receives via AUTHENTIK_POSTGRESQL__PASSWORD (single source in Vault).
+      secret:
+        name: authentik-db-app
