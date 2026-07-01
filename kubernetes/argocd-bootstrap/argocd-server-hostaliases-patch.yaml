@@ -1,0 +1,24 @@
+# Pin the Authentik Funnel hostname to its IPv4 funnel front-ends.
+#
+# The Funnel record publishes both IPv4 (209.177.145.x) and IPv6 (2607:f740:f::x).
+# argocd-server's pod has only a link-local IPv6 iface, so Go's resolver tries the
+# AAAA first and dies with "network is unreachable" (no IPv6 route), instead of
+# falling back to IPv4. Forcing /etc/hosts entries makes the resolver return IPv4
+# only, so the OIDC backchannel connects. These are Tailscale's shared funnel
+# ingress relays (same IPs the argocd funnel resolves to); if Tailscale ever
+# rotates them, refresh from: nslookup auth.balinese-pentatonic.ts.net 1.1.1.1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argo-gitops
+spec:
+  template:
+    spec:
+      hostAliases:
+        - ip: "209.177.145.97"
+          hostnames:
+            - auth.balinese-pentatonic.ts.net
+        - ip: "209.177.145.192"
+          hostnames:
+            - auth.balinese-pentatonic.ts.net
