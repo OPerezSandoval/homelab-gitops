@@ -12,3 +12,16 @@ resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/install.yaml
   - cluster-admin-binding.yaml
   - argocd-ingress.yaml
+  - oidc-external-secret.yaml
+
+# Layer cluster-specific config onto the upstream argocd-cm / argocd-rbac-cm.
+# target selectors match by kind+name so namespace rewriting doesn't matter.
+patches:
+  - path: argocd-cm-patch.yaml
+    target:
+      kind: ConfigMap
+      name: argocd-cm
+  - path: argocd-rbac-cm-patch.yaml
+    target:
+      kind: ConfigMap
+      name: argocd-rbac-cm

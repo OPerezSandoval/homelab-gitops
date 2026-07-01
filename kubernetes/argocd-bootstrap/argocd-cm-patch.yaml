@@ -1,0 +1,21 @@
+# Strategic-merge patch: adds the server URL + Authentik OIDC config onto the
+# upstream argocd-cm without touching its default resource.customizations.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argo-gitops
+data:
+  url: https://argocd.balinese-pentatonic.ts.net
+  oidc.config: |
+    name: Authentik
+    issuer: https://auth.balinese-pentatonic.ts.net/application/o/argocd/
+    clientID: AlCRKQ5NNiC9tVy3N2PHtb6jhZUKDXvqJnpJaXEh
+    clientSecret: $argocd-oidc:clientSecret
+    requestedScopes:
+      - openid
+      - profile
+      - email
+    requestedIDTokenClaims:
+      groups:
+        essential: true
