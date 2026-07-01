@@ -3,7 +3,9 @@ kind: Kustomization
 
 resources:
   - argocd
+  - authentik
   - cloudflare
+  - cnpg-operator
   - external-secrets-operator
   - headlamp
   - metallb

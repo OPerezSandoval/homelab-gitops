@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: authentik
+  namespace: argo-gitops
+  annotations:
+    # Sync after cnpg-operator (wave 1) so the Cluster CRD exists before extras apply.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    # 1) Authentik itself (server + worker + bundled Redis). Bundled Postgres is
+    #    disabled in favour of a CloudNativePG-managed cluster (see extras/).
+    - repoURL: https://charts.goauthentik.io
+      chart: authentik
+      targetRevision: 2026.5.3
+      helm:
+        valuesObject:
+          global:
+            # Injects AUTHENTIK_SECRET_KEY, AUTHENTIK_POSTGRESQL__PASSWORD,
+            # AUTHENTIK_BOOTSTRAP_PASSWORD, AUTHENTIK_BOOTSTRAP_TOKEN.
+            envFrom:
+              - secretRef:
+                  name: authentik-secrets
+          authentik:
+            # Point at the CNPG read-write service; password comes from envFrom above.
+            postgresql:
+              host: authentik-db-rw
+              name: authentik
+              user: authentik
+              port: 5432
+          # Use the CloudNativePG cluster, not the bundled Bitnami subchart.
+          postgresql:
+            enabled: false
+          # Keep the bundled Redis (cache/broker only) but don't persist it.
+          redis:
+            enabled: true
+            master:
+              persistence:
+                enabled: false
+          server:
+            ingress:
+              enabled: true
+              ingressClassName: tailscale
+              hosts:
+                - auth
+              tls:
+                - hosts:
+                    - auth
+    # 2) CNPG Cluster + ExternalSecrets that aren't part of the Helm chart.
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/authentik/extras
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: authentik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
