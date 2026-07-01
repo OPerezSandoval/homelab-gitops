@@ -42,6 +42,11 @@ spec:
             ingress:
               enabled: true
               ingressClassName: tailscale
+              annotations:
+                # Funnel so auth.<tailnet> is publicly resolvable with a valid cert,
+                # letting argocd-server reach the OIDC backchannel from in-cluster
+                # (CoreDNS can't resolve tailnet-only MagicDNS names).
+                tailscale.com/funnel: "true"
               hosts:
                 - auth
               tls:
