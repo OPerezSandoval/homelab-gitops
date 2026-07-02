@@ -9,7 +9,7 @@ data:
   url: https://argocd.balinese-pentatonic.ts.net
   oidc.config: |
     name: Authentik
-    issuer: https://auth.balinese-pentatonic.ts.net/application/o/argocd/
+    issuer: https://auth.archeflow.com/application/o/argocd/
     clientID: AlCRKQ5NNiC9tVy3N2PHtb6jhZUKDXvqJnpJaXEh
     clientSecret: $argocd-oidc:clientSecret
     requestedScopes:
