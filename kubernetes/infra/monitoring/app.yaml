@@ -1,0 +1,139 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argo-gitops
+  annotations:
+    # Sync after the operators (external-secrets, wave 1) so the ExternalSecret
+    # CRD exists before extras/ apply. The chart brings its own CRDs.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    # 1) kube-prometheus-stack: Prometheus Operator + Prometheus + Alertmanager +
+    #    node-exporter + kube-state-metrics + Grafana (bundled subchart), all wired
+    #    together (Grafana ships with the Prometheus datasource pre-provisioned).
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 87.10.1
+      helm:
+        valuesObject:
+          # ---- Prometheus -------------------------------------------------
+          prometheus:
+            prometheusSpec:
+              retention: 15d
+              # Discover ServiceMonitors/PodMonitors/Rules from ALL namespaces,
+              # not just those carrying this release's label — so app teams can
+              # ship their own ServiceMonitor and have it scraped automatically.
+              serviceMonitorSelectorNilUsesHelmValues: false
+              podMonitorSelectorNilUsesHelmValues: false
+              ruleSelectorNilUsesHelmValues: false
+              probeSelectorNilUsesHelmValues: false
+              storageSpec:
+                volumeClaimTemplate:
+                  spec:
+                    # NOTE: nfs-storage is the only StorageClass today. Prometheus
+                    # prefers local/block storage; migrate when a local-path SC is
+                    # added (production hardening — same caveat as CNPG).
+                    storageClassName: nfs-storage
+                    accessModes: ["ReadWriteOnce"]
+                    resources:
+                      requests:
+                        storage: 20Gi
+          # ---- Alertmanager ----------------------------------------------
+          alertmanager:
+            alertmanagerSpec:
+              storage:
+                volumeClaimTemplate:
+                  spec:
+                    storageClassName: nfs-storage
+                    accessModes: ["ReadWriteOnce"]
+                    resources:
+                      requests:
+                        storage: 5Gi
+          # ---- Control-plane scrape targets ------------------------------
+          # Talos binds kube-controller-manager / kube-scheduler / etcd metrics to
+          # localhost on the node, so their ServiceMonitors can't be scraped from a
+          # pod without exposing those endpoints at the Talos machine-config layer
+          # (out of scope for this repo). Disable them to avoid permanent "target
+          # down" alerts; re-enable once Talos exposes them. kubelet, apiserver,
+          # coredns, node-exporter and kube-state-metrics all scrape fine as-is.
+          kubeControllerManager:
+            enabled: false
+          kubeScheduler:
+            enabled: false
+          kubeEtcd:
+            enabled: false
+          # ---- Grafana (bundled subchart) --------------------------------
+          grafana:
+            enabled: true
+            # Break-glass local admin + OIDC client credentials, all sourced from
+            # Vault via the ExternalSecret in extras/ (single source of truth).
+            admin:
+              existingSecret: grafana-secrets
+              userKey: admin_user
+              passwordKey: admin_password
+            # Injects GF_AUTH_GENERIC_OAUTH_CLIENT_ID / _CLIENT_SECRET (the two
+            # secret OIDC values) as env, overriding the grafana.ini keys below.
+            envFromSecret: grafana-secrets
+            persistence:
+              enabled: true
+              storageClassName: nfs-storage
+              size: 5Gi
+            # Tailnet ingress for admin-UI access (matches the cluster convention).
+            # OIDC login works over the tailnet: the browser reaches Authentik at
+            # the public auth.archeflow.com, and Grafana's token backchannel does
+            # too — so no public exposure / new DNS is needed for Grafana itself.
+            ingress:
+              enabled: true
+              ingressClassName: tailscale
+              hosts:
+                - grafana
+              tls:
+                - hosts:
+                    - grafana
+            grafana.ini:
+              server:
+                root_url: https://grafana.balinese-pentatonic.ts.net
+              auth.generic_oauth:
+                enabled: true
+                name: Authentik
+                scopes: "openid profile email"
+                # client_id / client_secret come from envFromSecret (Vault) above.
+                auth_url: https://auth.archeflow.com/application/o/authorize/
+                token_url: https://auth.archeflow.com/application/o/token/
+                api_url: https://auth.archeflow.com/application/o/userinfo/
+                use_pkce: true
+                # Map Authentik groups -> Grafana roles. Members of grafana-admins
+                # get Admin, grafana-editors get Editor, everyone else Viewer.
+                role_attribute_path: "contains(groups[*], 'grafana-admins') && 'Admin' || contains(groups[*], 'grafana-editors') && 'Editor' || 'Viewer'"
+                role_attribute_strict: false
+                allow_assign_grafana_admin: true
+    # 2) ExternalSecret that isn't part of the Helm chart (Grafana OIDC + admin).
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/monitoring/extras
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # kube-prometheus-stack ships very large CRDs; SSA avoids the
+      # "metadata.annotations: Too long" apply error.
+      - ServerSideApply=true
+  ignoreDifferences:
+    # ESO's CRD schema defaults these optional fields server-side; they aren't in
+    # our manifest, so ArgoCD would otherwise report perpetual OutOfSync drift.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+        - .spec.target.deletionPolicy
+        - .spec.target.template.engineVersion
+        - .spec.target.template.mergePolicy

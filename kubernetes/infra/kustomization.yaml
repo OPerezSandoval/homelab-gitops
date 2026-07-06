@@ -11,6 +11,7 @@ resources:
   - metallb
   - metallb-config
   - metrics-server
+  - monitoring
   - nfs-provisioner
   - tailscale
   - vault
