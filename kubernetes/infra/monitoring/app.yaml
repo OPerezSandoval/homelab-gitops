@@ -64,6 +64,10 @@ spec:
             enabled: false
           kubeEtcd:
             enabled: false
+          # Cilium runs in kube-proxy replacement mode — there is no kube-proxy
+          # to scrape, so drop its monitor to avoid a down target.
+          kubeProxy:
+            enabled: false
           # ---- Grafana (bundled subchart) --------------------------------
           grafana:
             enabled: true
