@@ -1,0 +1,12 @@
+# The cluster default enforces Pod Security "baseline", which rejects
+# prometheus-node-exporter (it needs hostNetwork/hostPID/hostPath/hostPort 9100).
+# Mark the namespace privileged so the DaemonSet can schedule. Matches the
+# metallb namespace, which is privileged for the same host-access reason.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
