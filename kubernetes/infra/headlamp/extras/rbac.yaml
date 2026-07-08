@@ -1,0 +1,22 @@
+# Grants cluster-admin to Headlamp users who authenticate via Authentik and are in
+# the `headlamp-admins` Authentik group.
+#
+# Flow: Headlamp forwards the user's id_token to the Kubernetes API server; once the
+# API server trusts Authentik (Talos apiServer OIDC flags — see README.md), it reads
+# the token's `groups` claim and, with --oidc-groups-prefix=oidc:, surfaces the group
+# as `oidc:headlamp-admins`. That prefixed name is what this binding must match.
+#
+# Scope down later by pointing roleRef at a narrower ClusterRole (e.g. view) or adding
+# per-group bindings; cluster-admin here mirrors the current single-operator setup.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-oidc-admins
+subjects:
+  - kind: Group
+    name: "oidc:headlamp-admins"
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io

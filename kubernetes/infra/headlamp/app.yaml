@@ -3,40 +3,68 @@ kind: Application
 metadata:
   name: headlamp
   namespace: argo-gitops
+  annotations:
+    # Sync after external-secrets-operator (wave 1) so the ExternalSecret CRD
+    # exists before extras/ apply and the headlamp-oidc Secret can be created.
+    argocd.argoproj.io/sync-wave: "2"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://kubernetes-sigs.github.io/headlamp/
-    chart: headlamp
-    targetRevision: 0.43.0
-    helm:
-      valuesObject:
-        replicaCount: 1
-        ingress:
-          enabled: true
-          ingressClassName: tailscale
-          annotations: {}
-          hosts:
-            - host: headlamp
-              paths:
-                - path: /
-                  type: Prefix 
-          tls:
-            - hosts:
-                - headlamp
-        service:
-          type: NodePort
-          port: 80
-          targetPort: 8080
-        serviceAccount:
-          create: true
-          name: headlamp
-        clusterRoleBinding:
-          create: true
-        config:
-          baseURL: ""
+  sources:
+    # 1) Headlamp chart. OIDC (Authentik) is wired via the chart's externalSecret
+    #    mode: it reads OIDC_CLIENT_ID / _CLIENT_SECRET / _ISSUER_URL / _SCOPES from
+    #    the headlamp-oidc Secret (created by ESO in extras/) and passes them as
+    #    -oidc-* args. Headlamp forwards the user's id_token to the Kubernetes API,
+    #    so the API server must ALSO trust Authentik — that is a Talos
+    #    apiServer.extraArgs change applied out-of-band (see README.md).
+    - repoURL: https://kubernetes-sigs.github.io/headlamp/
+      chart: headlamp
+      targetRevision: 0.43.0
+      helm:
+        valuesObject:
+          replicaCount: 1
+          ingress:
+            enabled: true
+            ingressClassName: tailscale
+            annotations: {}
+            hosts:
+              - host: headlamp
+                paths:
+                  - path: /
+                    type: Prefix
+            tls:
+              - hosts:
+                  - headlamp
+          service:
+            type: NodePort
+            port: 80
+            targetPort: 8080
+          serviceAccount:
+            create: true
+            name: headlamp
+          # Chart default binds this ServiceAccount to cluster-admin. With OIDC on,
+          # user requests carry the user's own id_token so per-user RBAC applies;
+          # tightening the SA grant (clusterRoleName) is a separate hardening step.
+          clusterRoleBinding:
+            create: true
+          config:
+            baseURL: ""
+            oidc:
+              # Do not let the chart create an inline Secret; ESO owns it (extras/).
+              secret:
+                create: false
+              externalSecret:
+                enabled: true
+                name: headlamp-oidc
+                # Our Secret provides an OIDC_SCOPES key, so emit -oidc-scopes.
+                # Scopes include `groups` → the id_token carries group membership
+                # for the API server's --oidc-groups-claim mapping (RBAC below).
+                hasScopes: true
+    # 2) ExternalSecret (OIDC creds from Vault) + the group->cluster-admin binding.
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/headlamp/extras
   destination:
     server: https://kubernetes.default.svc
     namespace: headlamp
@@ -46,3 +74,15 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+  ignoreDifferences:
+    # ESO's CRD schema defaults these optional fields server-side; they aren't in
+    # our manifest, so ArgoCD would otherwise report perpetual OutOfSync drift.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+        - .spec.target.deletionPolicy
+        - .spec.target.template.engineVersion
+        - .spec.target.template.mergePolicy
