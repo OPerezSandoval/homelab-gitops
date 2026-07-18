@@ -23,20 +23,48 @@ spec:
             # Demo image only publishes :latest. Pin to a digest before this is
             # anything more than a prove-out — GitOps wants reproducible tags.
             tag: latest
-          # This is the COMPLETE config, not an overlay. The chart sets
-          # command: ["node", "packages/backend"] with no --config, which overrides
-          # the demo image's CMD, so the image's baked app-config.yaml never loads
-          # and only this ConfigMap does. Any key omitted here is simply absent —
-          # which is how app.title went missing and crashed the frontend.
-          # (backend.database is the exception worth knowing: when unset Backstage
-          # falls back to in-memory SQLite, which is what we want for the demo.)
+          # Restore the image's baked base config, which the chart otherwise drops:
+          # it sets command: ["node", "packages/backend"], overriding the image CMD
+          # ("node packages/backend --config app-config.yaml --config
+          # app-config.production.yaml") and taking both --config flags with it.
+          # The chart appends "--config <installDir>/app-config-from-configmap.yaml"
+          # after these args, so appConfig below still loads last and wins.
+          #
+          # app-config.yaml carries `app.packages: all` — the declarative plugin
+          # discovery. Without it no frontend plugin registers its API, which is
+          # what caused "No implementation available for apiRef{plugin.notifications
+          # .service}". It also sets backend.database.client: better-sqlite3.
+          #
+          # app-config.production.yaml is deliberately NOT restored: it pins
+          # database.client to pg with ${POSTGRES_HOST}/${POSTGRES_USER} etc, which
+          # we don't have. Re-add it in the CNPG follow-up, not before.
+          args:
+            - "--config"
+            - "app-config.yaml"
+          # Overlay on top of the baked config — only what the demo gets wrong for
+          # our deployment. Everything else (plugins, sqlite, scaffolder) is inherited.
           appConfig:
             app:
-              # Required by the frontend — it throws on startup without this.
-              title: Backstage
+              title: Archeflow Backstage
               baseUrl: https://backstage.balinese-pentatonic.ts.net
             organization:
               name: Archeflow
+            catalog:
+              # Baked paths are ../../examples/* (relative to packages/backend in a
+              # dev checkout). From WORKDIR /app that resolves outside the image; the
+              # example entities actually live at /app/examples. Repointing here is
+              # the half of app-config.production.yaml we do want.
+              locations:
+                - type: file
+                  target: ./examples/entities.yaml
+                - type: file
+                  target: ./examples/template/template.yaml
+                  rules:
+                    - allow: [Template]
+                - type: file
+                  target: ./examples/org.yaml
+                  rules:
+                    - allow: [User, Group]
             backend:
               baseUrl: https://backstage.balinese-pentatonic.ts.net
               cors:
