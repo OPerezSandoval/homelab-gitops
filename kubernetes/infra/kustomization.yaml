@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - argocd
   - authentik
+  - backstage
   - cloudflare
   - cnpg-operator
   - external-secrets-operator

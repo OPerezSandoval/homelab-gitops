@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backstage
+  namespace: argo-gitops
+spec:
+  project: default
+  # Single source: the upstream community chart deploying the vanilla demo image
+  # (ghcr.io/backstage/backstage). No extras/ yet — this first pass runs the demo
+  # with the guest auth provider and the chart's default in-memory SQLite, so it
+  # needs no Vault/ESO secret and no CNPG database. Adding Authentik OIDC + a CNPG
+  # Postgres cluster (mirroring authentik/) is a deliberate follow-up PR.
+  source:
+    repoURL: https://backstage.github.io/charts
+    chart: backstage
+    targetRevision: 2.8.2
+    helm:
+      valuesObject:
+        backstage:
+          image:
+            registry: ghcr.io
+            repository: backstage/backstage
+            # Demo image only publishes :latest. Pin to a digest before this is
+            # anything more than a prove-out — GitOps wants reproducible tags.
+            tag: latest
+          # Appended after the image's baked app-config.yaml, so unset keys
+          # (e.g. backend.database → sqlite in-memory) keep their demo defaults.
+          # We only override what breaks behind ingress: the base URLs default to
+          # localhost:7010, which makes the SPA and backend CORS fail otherwise.
+          appConfig:
+            app:
+              baseUrl: https://backstage.balinese-pentatonic.ts.net
+            backend:
+              baseUrl: https://backstage.balinese-pentatonic.ts.net
+              cors:
+                origin: https://backstage.balinese-pentatonic.ts.net
+            auth:
+              environment: development
+              providers:
+                guest:
+                  # Guest sign-in is a dev-only provider; this flag is required for
+                  # it to issue identities. Replace with Authentik OIDC before any
+                  # real use — guest grants everyone the same identity.
+                  dangerouslyAllowOutsideDevelopment: true
+        service:
+          type: ClusterIP
+          ports:
+            backend: 7007
+        # Tailnet-only admin access, matching repo convention (host resolves to
+        # backstage.balinese-pentatonic.ts.net; Tailscale provisions the TLS cert).
+        ingress:
+          enabled: true
+          className: tailscale
+          host: backstage
+          tls:
+            enabled: true
+            secretName: backstage-tls
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backstage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
