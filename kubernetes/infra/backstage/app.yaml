@@ -23,13 +23,20 @@ spec:
             # Demo image only publishes :latest. Pin to a digest before this is
             # anything more than a prove-out — GitOps wants reproducible tags.
             tag: latest
-          # Appended after the image's baked app-config.yaml, so unset keys
-          # (e.g. backend.database → sqlite in-memory) keep their demo defaults.
-          # We only override what breaks behind ingress: the base URLs default to
-          # localhost:7010, which makes the SPA and backend CORS fail otherwise.
+          # This is the COMPLETE config, not an overlay. The chart sets
+          # command: ["node", "packages/backend"] with no --config, which overrides
+          # the demo image's CMD, so the image's baked app-config.yaml never loads
+          # and only this ConfigMap does. Any key omitted here is simply absent —
+          # which is how app.title went missing and crashed the frontend.
+          # (backend.database is the exception worth knowing: when unset Backstage
+          # falls back to in-memory SQLite, which is what we want for the demo.)
           appConfig:
             app:
+              # Required by the frontend — it throws on startup without this.
+              title: Backstage
               baseUrl: https://backstage.balinese-pentatonic.ts.net
+            organization:
+              name: Archeflow
             backend:
               baseUrl: https://backstage.balinese-pentatonic.ts.net
               cors:
