@@ -13,7 +13,7 @@ replicas:
 
 images:
   - name: operez11/medtracker
-    newTag: "dev-498b4b8"
+    newTag: "dev-3bd8ca7"
 
 patchesJson6902:
   - target:
