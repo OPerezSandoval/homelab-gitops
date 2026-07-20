@@ -10,7 +10,7 @@ resources:
 
 replicas:
   - name: medtracker
-    count: 2
+    count: 1
 
 images:
   - name: operez11/medtracker
