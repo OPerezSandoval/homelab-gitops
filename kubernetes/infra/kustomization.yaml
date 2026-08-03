@@ -14,5 +14,6 @@ resources:
   - metrics-server
   - monitoring
   - nfs-provisioner
+  - skyhook-connector
   - tailscale
   - vault
