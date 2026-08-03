@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: skyhook-connector
+  namespace: argo-gitops
+  annotations:
+    # Sync after external-secrets-operator (wave 1) so the ExternalSecret CRD
+    # exists before extras/ apply and the skyhook-connector-secrets Secret can
+    # be created — the Deployment blocks on that Secret via secretKeyRef.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  sources:
+    # 1) The Skyhook connector itself. It watches cluster resources via informers
+    #    and streams them to Skyhook's SaaS backend, authenticating with an API key.
+    #
+    #    Vendor onboarding tells you to `helm install --set apiKey=<value>`; we do
+    #    not do that. `existingSecret` points the chart at a Secret we own, so the
+    #    chart renders no Secret of its own and the key never enters Git — it comes
+    #    from Vault via the ExternalSecret in extras/.
+    - repoURL: https://skyhook-io.github.io/helm-charts
+      chart: skyhook-connector
+      targetRevision: 1.3.25
+      helm:
+        valuesObject:
+          # ESO owns this Secret (extras/). The chart reads key SKYHOOK_API_KEY
+          # from it and injects it as the container's SKYHOOK_API_KEY env var.
+          existingSecret: skyhook-connector-secrets
+          rbac:
+            # Chart default is true, which grants the connector a Role to patch
+            # its own Deployment so you can one-click upgrade from the Skyhook UI.
+            # That is an out-of-band write path to the cluster: the image tag would
+            # drift from this file, and ArgoCD selfHeal would immediately revert it.
+            # Upgrades happen by bumping targetRevision above.
+            selfUpgrade: false
+    # 2) ExternalSecret carrying the API key from Vault.
+    - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
+      targetRevision: main
+      path: kubernetes/infra/skyhook-connector/extras
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: skyhook-connector
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  ignoreDifferences:
+    # ESO's CRD schema defaults these optional fields server-side; they aren't in
+    # our manifest, so ArgoCD would otherwise report perpetual OutOfSync drift.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+        - .spec.target.deletionPolicy
+        - .spec.target.template.engineVersion
+        - .spec.target.template.mergePolicy
