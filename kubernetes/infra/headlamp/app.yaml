@@ -37,7 +37,7 @@ spec:
               - hosts:
                   - headlamp
           service:
-            type: NodePort
+            type: ClusterIP
             port: 80
             targetPort: 8080
           serviceAccount:
