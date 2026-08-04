@@ -13,7 +13,7 @@ customLabels:
   - "test-mode"
 
 service:
-  type: NodePort
+  type: ClusterIP
   port: 80
   targetPort: 8080
 

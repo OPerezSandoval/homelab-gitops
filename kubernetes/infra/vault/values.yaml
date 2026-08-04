@@ -29,8 +29,7 @@ server:
   
   service:
     enabled: true
-    type: NodePort
-    nodePort: 30820
+    type: ClusterIP
   
   # Data storage 
   dataStorage:
@@ -42,5 +41,5 @@ server:
 
 ui:
   enabled: true
-  serviceType: "NodePort"
+  serviceType: "ClusterIP"
   externalPort: 8200
