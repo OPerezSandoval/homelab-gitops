@@ -17,6 +17,21 @@ spec:
         k8sServiceHost: 192.168.1.86
         k8sServicePort: 6443
         kubeProxyReplacement: true
+        operator:
+          # Single node, and the operator binds a host port for health/metrics,
+          # so a second replica can never schedule. Chart default is 2.
+          replicas: 1
+        hubble:
+          relay:
+            enabled: true
+          ui:
+            enabled: true
+          tls:
+            auto:
+              # Must not be the chart default ("helm"): that mints new certs on
+              # every render, which reads as permanent drift to ArgoCD. "cronJob"
+              # generates them in-cluster once and keeps them stable.
+              method: cronJob
         securityContext:
           capabilities:
             ciliumAgent:
