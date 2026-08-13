@@ -34,6 +34,19 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.path.basename}}-dev'
+      ignoreDifferences:
+        # ESO's CRD schema defaults these optional fields server-side; they
+        # aren't in our manifests, so ArgoCD would otherwise report perpetual
+        # OutOfSync drift on every app that uses an ExternalSecret.
+        - group: external-secrets.io
+          kind: ExternalSecret
+          jqPathExpressions:
+            - .spec.data[].remoteRef.conversionStrategy
+            - .spec.data[].remoteRef.decodingStrategy
+            - .spec.data[].remoteRef.metadataPolicy
+            - .spec.target.deletionPolicy
+            - .spec.target.template.engineVersion
+            - .spec.target.template.mergePolicy
       syncPolicy:
         automated:
           prune: true

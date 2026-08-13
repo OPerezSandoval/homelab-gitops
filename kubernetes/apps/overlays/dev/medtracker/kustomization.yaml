@@ -5,6 +5,7 @@ namespace: medtracker-dev
 
 resources:
   - ../../../base/medtracker/base
+  - pvc.yaml
   - ingress.yaml
 
 replicas:
@@ -14,11 +15,3 @@ replicas:
 images:
   - name: operez11/medtracker
     newTag: "dev-bf72fa3"
-
-patchesJson6902:
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: medtracker
-    path: deployment-patch.yaml

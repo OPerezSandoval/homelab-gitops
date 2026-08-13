@@ -6,6 +6,14 @@ metadata:
     app: medtracker
 spec:
   replicas: 1
+  # Recreate, not RollingUpdate. The database is SQLite on an NFS RWX volume and
+  # SQLite's POSIX advisory locking is unreliable over NFS, so two processes
+  # holding the same file corrupt it silently rather than failing loudly. A
+  # rolling update briefly runs the old and new pods together — that is two
+  # writers. Recreate accepts a few seconds of downtime to guarantee one writer.
+  # This can go back to RollingUpdate after the migration to Postgres.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: medtracker
@@ -14,17 +22,84 @@ spec:
       labels:
         app: medtracker
     spec:
+      securityContext:
+        # The image (Chainguard python) runs as UID 65532 and has no shell.
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        # fsGroup makes the kubelet chown the mounted volume to this group, which
+        # is what lets a non-root process write to a volume whose existing files
+        # were created by the previous root container. Without it the app starts
+        # and then fails every write with "attempt to write a readonly database".
+        fsGroup: 65532
+        # OnRootMismatch skips the recursive chown when the top-level directory
+        # already has the right ownership — otherwise every mount walks the whole
+        # volume.
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: medtracker
         image: operez11/medtracker:1.0.4
         imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
         ports:
         - containerPort: 5000
           name: http
+        envFrom:
+          # SECRET_KEY. The app refuses to start without it, so a missing or
+          # broken ExternalSecret surfaces as a crash loop rather than as an app
+          # silently running with a publicly known session-signing key.
+          - secretRef:
+              name: medtracker-secrets
+        # readinessProbe gates traffic: the Service only sends requests once
+        # /health answers. livenessProbe restarts a wedged process. startupProbe
+        # gives the app room to boot without the liveness probe killing it first.
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 3
+          failureThreshold: 20
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Requests move the pod out of BestEffort QoS, where it would be first
+        # evicted under memory pressure — a real concern on a single node.
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            # No CPU limit on purpose: a limit throttles rather than protects,
+            # and the request already guarantees the share. The memory limit is
+            # what prevents one leak from taking the node down.
+            memory: 512Mi
         volumeMounts:
         - mountPath: /app/instance
           name: medtracker-data
+        # readOnlyRootFilesystem means gunicorn needs a writable /tmp.
+        - mountPath: /tmp
+          name: tmp
       volumes:
       - name: medtracker-data
         persistentVolumeClaim:
           claimName: medtracker
+      - name: tmp
+        emptyDir: {}
