@@ -15,4 +15,4 @@ replicas:
 
 images:
   - name: operez11/medtracker
-    newTag: "dev-bf72fa3"
+    newTag: "dev-a87ce16"
