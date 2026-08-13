@@ -27,17 +27,83 @@ spec:
         runAsNonRoot: true
         runAsUser: 65532
         runAsGroup: 65532
-        # fsGroup makes the kubelet chown the mounted volume to this group, which
-        # is what lets a non-root process write to a volume whose existing files
-        # were created by the previous root container. Without it the app starts
-        # and then fails every write with "attempt to write a readonly database".
+        # fsGroup applies to the emptyDir below. It does NOT apply to the data
+        # volume: the kubelet skips volume ownership management entirely on NFS,
+        # so neither fsGroup nor fsGroupChangePolicy will chown anything there.
+        # Files on an NFS PVC that were created by a previous root container stay
+        # owned by uid 0, and this container (65532) can read them but not write
+        # them. Ownership on NFS is fixed on the NFS server, not from here — the
+        # init container below turns that condition into a startup failure
+        # instead of letting it become a silent data-loss bug.
         fsGroup: 65532
-        # OnRootMismatch skips the recursive chown when the top-level directory
-        # already has the right ownership — otherwise every mount walks the whole
-        # volume.
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+      # Refuse to start rather than start read-only.
+      #
+      # SQLite opens a read-only database file without complaining and only fails
+      # at the first write, so a pod whose data volume it cannot write passes its
+      # health check, serves every page correctly, and silently discards every
+      # dose the user logs. That happened in prod: the volume's medtrack.db was
+      # still owned by uid 0 from the old root image, and the deployment reported
+      # Running 1/1 for hours while accepting no writes.
+      #
+      # Same image as the app container (so the images: transformer keeps them on
+      # one tag, and there is nothing extra to pull). The Chainguard image has no
+      # shell, so this is Python rather than a shell one-liner.
+      initContainers:
+      - name: check-data-writable
+        image: operez11/medtracker:1.0.4
+        imagePullPolicy: IfNotPresent
+        command:
+          - /usr/bin/python
+          - -c
+          - |
+            import os, sys, stat
+
+            DIR = "/app/instance"
+            DB = os.path.join(DIR, "medtrack.db")
+            uid = os.getuid()
+
+            problems = []
+            if not os.access(DIR, os.W_OK | os.X_OK):
+                problems.append("%s is not writable by uid %d" % (DIR, uid))
+            if os.path.exists(DB) and not os.access(DB, os.W_OK):
+                st = os.stat(DB)
+                problems.append(
+                    "%s is owned by %d:%d mode %s and is not writable by uid %d"
+                    % (DB, st.st_uid, st.st_gid, oct(stat.S_IMODE(st.st_mode)), uid)
+                )
+
+            if problems:
+                for p in problems:
+                    print("FATAL: " + p, file=sys.stderr)
+                print(
+                    "SQLite would accept reads and fail every write with "
+                    "'attempt to write a readonly database'. fsGroup cannot fix "
+                    "this: the kubelet skips volume ownership management on NFS. "
+                    "Fix it on the NFS server, on this PVC's export directory:\n"
+                    "    chown -R 65532:65532 <export>/<namespace>-medtracker-pvc-*",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
+            print("ok: %s is writable by uid %d" % (DIR, uid))
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /app/instance
+          name: medtracker-data
       containers:
       - name: medtracker
         image: operez11/medtracker:1.0.4
