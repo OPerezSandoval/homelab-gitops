@@ -8,6 +8,8 @@ resources:
   - pvc.yaml
   - ingress.yaml
   - external-secret.yaml
+  - backup-pvc.yaml
+  - backup-cronjob.yaml
 
 replicas:
   - name: medtracker
