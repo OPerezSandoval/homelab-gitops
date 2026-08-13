@@ -7,6 +7,7 @@ resources:
   - ../../../base/medtracker/base
   - pvc.yaml
   - ingress.yaml
+  - external-secret.yaml
 
 replicas:
   - name: medtracker
