@@ -1,0 +1,18 @@
+# Backup target, deliberately a separate volume from the app's data PVC so a
+# mistake that empties one does not take the other with it.
+#
+# Same NFS export and therefore the same physical disk: this protects against
+# application-level loss (a bad migration, an accidental delete, corruption) and
+# not against that disk failing. Offsite copies are still a separate problem.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: medtracker-backups
+  namespace: medtracker-prod
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storage
+  resources:
+    requests:
+      storage: 5Gi
