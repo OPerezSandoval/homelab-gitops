@@ -5,18 +5,14 @@ name: Validate manifests
 # from the render and therefore gets deleted from the cluster. This workflow is
 # the only thing between a bad commit and that outcome.
 
+# No `paths:` filter, deliberately. This is a required status check, and a
+# filtered workflow simply does not run on unrelated PRs — GitHub then waits
+# forever for a result that never arrives and the PR can never merge. Running
+# unconditionally costs ~15s.
 on:
   pull_request:
-    paths:
-      - 'kubernetes/**'
-      - 'clusters/**'
-      - '.github/workflows/validate-manifests.yaml'
   push:
     branches: [main]
-    paths:
-      - 'kubernetes/**'
-      - 'clusters/**'
-      - '.github/workflows/validate-manifests.yaml'
 
 permissions:
   contents: read
