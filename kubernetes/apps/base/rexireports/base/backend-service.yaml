@@ -1,0 +1,24 @@
+# Named `backend`, not `rexireports-backend`, and that is load-bearing.
+#
+# The frontend image ships a baked-in nginx.conf with `proxy_pass
+# http://backend:8000`. Same-namespace DNS resolves that to this Service, so the
+# one image works unmodified both here and under docker compose, where the
+# compose service is also called `backend`. Renaming this Service breaks the
+# frontend until the image is rebuilt.
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app: rexireports
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: rexireports
+    component: backend

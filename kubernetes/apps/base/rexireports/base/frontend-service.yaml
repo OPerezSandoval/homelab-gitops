@@ -1,0 +1,19 @@
+# The only entry point. The Cloudflare tunnel and the tailnet Ingress both point
+# here; the backend is reachable only from this pod, via the /api/ proxy rule.
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: rexireports
+    component: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: rexireports
+    component: frontend

@@ -1,0 +1,64 @@
+# Rexi Reports UI — static files on nginx, which also reverse-proxies /api/ to
+# the backend Service so the browser only ever talks to one origin.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: rexireports
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rexireports
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: rexireports
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: operez11/rexi-reports-frontend:dev-latest
+        imagePullPolicy: IfNotPresent
+        # Stock nginx:alpine: the master runs as root to bind :80 and drops its
+        # workers to the `nginx` user, and it writes to /var/cache/nginx and
+        # /var/run. So no runAsNonRoot, no readOnlyRootFilesystem and no cap
+        # drop here — dropping ALL would take SETUID/SETGID with it and the
+        # workers would never spawn. Matches archeflow-site
+        # (base/archeflow-site/base/deployment.yaml). Tightening this means
+        # moving the image to nginx-unprivileged and listening on 8080, which is
+        # a change to the app repo's Dockerfile, not to this manifest.
+        securityContext:
+          allowPrivilegeEscalation: false
+        ports:
+        - containerPort: 80
+          name: http
+        # nginx resolves `backend` at config-load time, so a pod that starts
+        # before the backend Service object exists exits with "host not found in
+        # upstream" and crash-loops until it does. Self-healing, but it is why a
+        # first sync can show a few restarts here.
+        readinessProbe:
+          httpGet:
+            path: /index.html
+            port: http
+          initialDelaySeconds: 2
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /index.html
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 2
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
