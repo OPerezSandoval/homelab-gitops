@@ -15,6 +15,6 @@ replicas:
 
 images:
   - name: operez11/rexi-reports-backend
-    newTag: "dev-latest"
+    newTag: "dev-b2fc9c6"
   - name: operez11/rexi-reports-frontend
-    newTag: "dev-latest"
+    newTag: "dev-b2fc9c6"
