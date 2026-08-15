@@ -1,0 +1,25 @@
+# Tailnet access only — deliberately no `tailscale.com/funnel` annotation.
+#
+# Public traffic reaches this app through the Cloudflare tunnel instead, which
+# is where the Access policy sits; funnel would open a second public door that
+# bypasses it entirely. This Ingress exists so the deployment can be verified
+# from the tailnet before, and independently of, the public hostname.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rexireports-ingress
+spec:
+  ingressClassName: tailscale
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - rexireports

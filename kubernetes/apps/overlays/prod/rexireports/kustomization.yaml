@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: rexireports-prod
+
+resources:
+  - ../../../base/rexireports/base
+  - ingress.yaml
+
+replicas:
+  # backend stays at 1 — the token store is in-process. See the comment on
+  # base/rexireports/base/backend-deployment.yaml before changing this.
+  - name: backend
+    count: 1
+  - name: frontend
+    count: 2
+
+images:
+  - name: operez11/rexi-reports-backend
+    newTag: "v0.1.0"
+  - name: operez11/rexi-reports-frontend
+    newTag: "v0.1.0"

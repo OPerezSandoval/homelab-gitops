@@ -1,0 +1,98 @@
+# Rexi Reports API — FastAPI + pandas behind uvicorn.
+#
+# Single replica, always. Download tokens are held in a dict in the uvicorn
+# process (see the app's README, "Notes"), so a second replica would hand out
+# tokens that the other replica cannot resolve and roughly half of all downloads
+# would 404. Scaling this out needs a shared token store first, not more pods.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: rexireports
+    component: backend
+spec:
+  replicas: 1
+  # Recreate rather than RollingUpdate: a rolling update briefly runs two
+  # backends, which is the exact condition the in-process token store cannot
+  # survive. Uploads in flight during a deploy have to be retried either way.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: rexireports
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: rexireports
+        component: backend
+    spec:
+      securityContext:
+        # The image creates and runs as uid 10001 (backend/Dockerfile).
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: backend
+        image: operez11/rexi-reports-backend:dev-latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        # Matches the Dockerfile default; set explicitly so the scratch path is
+        # visible here rather than only inside the image.
+        - name: REXI_TMP_DIR
+          value: /tmp/rexi-reports
+        startupProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          periodSeconds: 3
+          failureThreshold: 20
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Parsing a 64 MB xlsx with pandas and building a workbook with openpyxl
+        # is the memory-hungry part, and the tmpfs below counts against this same
+        # limit. No CPU limit on purpose: the request guarantees the share, and a
+        # limit would only throttle a report that is already slow to generate.
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      # Generated workbooks are throwaway and their tokens die with the process,
+      # so there is nothing here worth persisting — this mirrors the tmpfs mount
+      # in the app's docker-compose.yml. medium: Memory keeps finished reports
+      # off the node's disk entirely; sizeLimit stops a burst of uploads from
+      # eating the container's whole memory allowance.
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 256Mi
