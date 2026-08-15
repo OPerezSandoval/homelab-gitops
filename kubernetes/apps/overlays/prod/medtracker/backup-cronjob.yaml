@@ -1,0 +1,136 @@
+# Nightly backup of the prod SQLite database.
+#
+# Uses sqlite3's online backup API rather than copying the file. A cp of a live
+# SQLite database can capture a torn write — the app is single-writer but it is
+# still writing, and cp has no idea about transaction boundaries. The backup API
+# takes a consistent snapshot of a database that is actively in use, which is
+# exactly the situation here.
+#
+# Runs the app image so there is no second image to pull, patch or trust; the
+# kustomize images: transformer keeps it on the same tag as the Deployment. The
+# Chainguard image has no shell, so this is Python invoked directly.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: medtracker-backup
+  namespace: medtracker-prod
+spec:
+  schedule: "17 4 * * *"
+  timeZone: America/Chicago
+  # Forbid, not Replace: two concurrent backups would race on the same output
+  # name and on retention pruning. A skipped run is recoverable; a corrupt
+  # backup that looks successful is not.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            fsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: backup
+            image: operez11/medtracker:1.0.4
+            imagePullPolicy: IfNotPresent
+            command:
+              - /usr/bin/python
+              - -c
+              - |
+                import os, sqlite3, sys, time
+
+                SRC = "/data/medtrack.db"
+                DEST_DIR = "/backups"
+                KEEP_DAYS = 14
+
+                if not os.path.exists(SRC):
+                    print("FATAL: %s does not exist" % SRC, file=sys.stderr)
+                    sys.exit(1)
+
+                stamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+                dest = os.path.join(DEST_DIR, "medtrack_%s.db" % stamp)
+                partial = dest + ".partial"
+
+                src_size = os.path.getsize(SRC)
+                print("source %s (%d bytes) -> %s" % (SRC, src_size, dest))
+
+                # Write to .partial and rename only on success, so an interrupted
+                # run can never leave a truncated file that looks like a backup.
+                src = sqlite3.connect("file:%s?mode=ro" % SRC, uri=True)
+                try:
+                    out = sqlite3.connect(partial)
+                    try:
+                        src.backup(out)
+                    finally:
+                        out.close()
+                finally:
+                    src.close()
+
+                # Prove the copy is a readable database before trusting it.
+                check = sqlite3.connect("file:%s?mode=ro" % partial, uri=True)
+                try:
+                    result = check.execute("PRAGMA integrity_check").fetchone()[0]
+                    tables = check.execute(
+                        "SELECT count(*) FROM sqlite_master WHERE type='table'"
+                    ).fetchone()[0]
+                finally:
+                    check.close()
+
+                if result != "ok":
+                    print("FATAL: integrity_check returned %r" % result, file=sys.stderr)
+                    os.unlink(partial)
+                    sys.exit(1)
+
+                os.rename(partial, dest)
+                print("ok: %d bytes, %d tables, integrity_check ok"
+                      % (os.path.getsize(dest), tables))
+
+                # Retention. Only ever removes files this job created.
+                cutoff = time.time() - KEEP_DAYS * 86400
+                removed = 0
+                for name in sorted(os.listdir(DEST_DIR)):
+                    if not (name.startswith("medtrack_") and name.endswith(".db")):
+                        continue
+                    path = os.path.join(DEST_DIR, name)
+                    if os.path.getmtime(path) < cutoff:
+                        os.unlink(path)
+                        removed += 1
+                        print("pruned %s" % name)
+
+                kept = [n for n in os.listdir(DEST_DIR)
+                        if n.startswith("medtrack_") and n.endswith(".db")]
+                print("retention: %d kept, %d pruned" % (len(kept), removed))
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                memory: 256Mi
+            volumeMounts:
+            - mountPath: /data
+              name: medtracker-data
+              readOnly: true
+            - mountPath: /backups
+              name: medtracker-backups
+          volumes:
+          - name: medtracker-data
+            persistentVolumeClaim:
+              claimName: medtracker
+              readOnly: true
+          - name: medtracker-backups
+            persistentVolumeClaim:
+              claimName: medtracker-backups
