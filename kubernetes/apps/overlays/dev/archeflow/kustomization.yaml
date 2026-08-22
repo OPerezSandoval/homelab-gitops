@@ -13,4 +13,4 @@ replicas:
 
 images:
   - name: operez11/archeflow-site
-    newTag: "dev-c86268e"
+    newTag: "dev-023d330"
