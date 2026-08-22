@@ -86,7 +86,7 @@ kubernetes/
 
 ## Tooling
 
-- **ArgoCD v3.4+** — pulls from `main`, runs in the `argo-gitops` namespace. The ArgoCD install itself is GitOps-managed via a remote kustomize base.
+- **ArgoCD v3.5+** — pulls from `main`, runs in the `argo-gitops` namespace. The ArgoCD install itself is GitOps-managed via a remote kustomize base.
 - **ApplicationSet** — auto-discovers workloads. Add an overlay folder, get an Application for free.
 - **Kustomize** — directory composition for umbrellas and overlays.
 - **Helm** — used via ArgoCD Helm source for third-party charts (Vault, ESO, Tailscale, etc.). Three apps use multi-source (vault, external-secrets, tailscale-operator, n8n) — chart + Git extras.
@@ -163,8 +163,8 @@ One-line PR:
 
 ```diff
 # kubernetes/argocd-bootstrap/kustomization.yaml
-- - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/install.yaml
-+ - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.0/manifests/install.yaml
+- - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.1/manifests/install.yaml
++ - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.2/manifests/install.yaml
 ```
 
 Open PR, merge. `Application/argocd` auto-syncs and rolls the new version in. ArgoCD upgrades itself.

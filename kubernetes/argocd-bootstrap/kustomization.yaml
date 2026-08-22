@@ -5,11 +5,11 @@ kind: Kustomization
 # bakes namespace: argocd into every resource; this rewrites them.
 namespace: argo-gitops
 
-# Pin the ArgoCD version here. To upgrade: bump the v3.4.2 tag in the URL below,
+# Pin the ArgoCD version here. To upgrade: bump the v3.5.1 tag in the URL below,
 # open a PR, merge. Application/argocd auto-syncs and rolls the upgrade in.
 # Reference: https://github.com/argoproj/argo-cd/releases
 resources:
-  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.2/manifests/install.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.1/manifests/install.yaml
   - cluster-admin-binding.yaml
   - argocd-ingress.yaml
   - oidc-external-secret.yaml
