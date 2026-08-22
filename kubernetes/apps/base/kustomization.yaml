@@ -6,8 +6,6 @@ resources:
   # Add a new workload by creating overlay folders only — no app.yaml needed.
   - applicationsets
 
-  # Exceptions: apps that don't fit the standard kustomize-overlay pattern.
-  # helm-demo uses a Helm chart with per-env overlay values.yaml.
-  # n8n is a single-instance Helm chart with no dev/prod split.
-  - helm-demo
+  # Exception: n8n is a single-instance Helm chart with no dev/prod split, so it
+  # keeps a manual app.yaml rather than a pair of overlay folders.
   - n8n

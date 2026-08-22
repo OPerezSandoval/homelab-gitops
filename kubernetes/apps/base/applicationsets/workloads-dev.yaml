@@ -14,11 +14,8 @@ spec:
         directories:
           # Scan every overlay folder under dev/ — each becomes an Application
           - path: kubernetes/apps/overlays/dev/*
-          # Exclusions: apps that don't fit the kustomize-overlay pattern
-          # (helm-demo uses a Helm chart with overlay values, kept as a manual
-          # app.yaml. kafka is an orphan demo folder kept for reference.)
-          - path: kubernetes/apps/overlays/dev/helm-demo
-            exclude: true
+          # Exclusion: kafka is an orphan demo folder kept for reference and
+          # is not meant to generate an Application.
           - path: kubernetes/apps/overlays/dev/kafka
             exclude: true
   template:
