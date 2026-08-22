@@ -4,15 +4,15 @@ kind: Kustomization
 namespace: medtracker-dev
 
 resources:
-  - ../../../base/medtracker/base
-  - pvc.yaml
-  - ingress.yaml
-  - external-secret.yaml
+- ../../../base/medtracker/base
+- pvc.yaml
+- ingress.yaml
+- external-secret.yaml
 
 replicas:
-  - name: medtracker
-    count: 1
+- count: 1
+  name: medtracker
 
 images:
-  - name: operez11/medtracker
-    newTag: "dev-fde85ee"
+- name: operez11/medtracker
+  newTag: dev-98704d6
