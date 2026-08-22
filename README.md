@@ -27,7 +27,7 @@ GitOps repository managing a single Talos Kubernetes cluster. ArgoCD pulls from 
 
 Three top-level Applications:
 
-- **`apps`** owns user apps. Two ApplicationSets scan `overlays/{dev,prod}/*` and auto-generate Applications for every overlay folder. A few exceptions (helm-demo, n8n) keep manual `app.yaml` because they don't fit the pure kustomize-overlay pattern.
+- **`apps`** owns user apps. Two ApplicationSets scan `overlays/{dev,prod}/*` and auto-generate Applications for every overlay folder. One exception (n8n) keeps a manual `app.yaml` because it doesn't fit the pure kustomize-overlay pattern.
 - **`infra`** owns platform components - ingress, secrets, networking, metrics.
 - **`argocd`** is self-managing and also manages the ArgoCD install itself via a remote kustomize base pinned to a specific upstream version. Upgrading ArgoCD = bump the version in one line.
 
@@ -67,7 +67,7 @@ kubernetes/
   apps/                   
    Application/apps
     base/
-      kustomization.yaml  ← Lists applicationsets, helm-demo, n8n
+      kustomization.yaml  ← Lists applicationsets, n8n
       applicationsets/    ← Two ApplicationSets that auto-generate workload Applications
       archeflow-site/
         base/             ← Raw manifests (referenced by overlays)
@@ -75,7 +75,6 @@ kubernetes/
         base/
       medtracker/
         base/
-      helm-demo/          ← Exception: Helm chart + per-env values.yaml
       n8n/                ← Exception: single-instance Helm chart
         extras/           ← n8n ExternalSecret
       kafka/  strimzi/    ← Orphan demo folders, not in kustomization

@@ -12,9 +12,8 @@ spec:
         repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
         revision: main
         directories:
+          # Scan every overlay folder under prod/ — each becomes an Application
           - path: kubernetes/apps/overlays/prod/*
-          - path: kubernetes/apps/overlays/prod/helm-demo
-            exclude: true
   template:
     metadata:
       name: '{{.path.basename}}-prod'
