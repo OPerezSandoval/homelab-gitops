@@ -10,6 +10,7 @@ resources:
   - cnpg-operator
   - external-secrets-operator
   - headlamp
+  - local-path-provisioner
   - metallb
   - metallb-config
   - metrics-server

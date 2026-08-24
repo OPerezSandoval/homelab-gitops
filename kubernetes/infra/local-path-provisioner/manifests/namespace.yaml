@@ -1,0 +1,9 @@
+# The provisioner's helper pod mounts a hostPath and runs as root — that is how
+# it creates and removes the backing directories. Pod Security Admission must
+# allow it, or every provision silently fails.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: local-path-storage
+  labels:
+    pod-security.kubernetes.io/enforce: privileged

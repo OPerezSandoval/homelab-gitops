@@ -1,0 +1,53 @@
+# Where PersistentVolumes physically live on the node.
+#
+# /var/mnt/local-path-provisioner (NOT the upstream default of
+# /opt/local-path-provisioner): Talos is immutable and /opt is an overlay, so
+# volumes there would not survive. /var is the writable EPHEMERAL partition.
+#
+# This path REQUIRES a matching kubelet extraMounts bind in the Talos machine
+# config, or the helper pod cannot see it:
+#   ~/talos-rebuild-prep/talos/patches/local-path-kubelet-mounts.yaml
+#
+# !!! `talosctl upgrade` WIPES the EPHEMERAL partition unless --preserve is
+# passed. Anything provisioned here goes with it. The nightly Vault backup
+# CronJob is the mitigation, not the prevention.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-path-config
+  namespace: local-path-storage
+data:
+  config.json: |-
+    {
+            "nodePathMap":[
+            {
+                    "node":"DEFAULT_PATH_FOR_NON_LISTED_NODES",
+                    "paths":["/var/mnt/local-path-provisioner"]
+            }
+            ]
+    }
+  setup: |-
+    #!/bin/sh
+    set -eu
+    mkdir -m 0777 -p "$VOL_DIR"
+  teardown: |-
+    #!/bin/sh
+    set -eu
+    rm -rf "$VOL_DIR"
+  # Upstream ships this image untagged, which resolves to :latest — an
+  # unpinned root-capable pod in the provisioning path. Pinned here.
+  helperPod.yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: helper-pod
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: helper-pod
+        image: docker.io/library/busybox:1.37
+        imagePullPolicy: IfNotPresent
