@@ -16,6 +16,14 @@ spec:
             clientSecretFromSecret: true
           operatorConfig:
             hostname: "tailscale-operator"
+          # Exposes the kube-apiserver at tailscale-operator.balinese-pentatonic.ts.net,
+          # so kubectl works from any tailnet device without being on the home LAN.
+          # "true" = auth mode: requests are impersonated as the calling tailnet identity,
+          # which still needs a matching RBAC binding in-cluster and a tailnet ACL grant.
+          # Never "noauth" — that would hand full cluster-admin to every tailnet device.
+          # https://tailscale.com/kb/1437/kubernetes-operator-api-server-proxy
+          apiServerProxyConfig:
+            mode: "true"
     - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
       targetRevision: main
       path: kubernetes/infra/tailscale/extras
