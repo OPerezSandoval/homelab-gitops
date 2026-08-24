@@ -1,0 +1,30 @@
+# Grants tailnet operators access to the cluster through the Tailscale API server
+# proxy (enabled in ../app.yaml).
+#
+# Two halves, deliberately: the tailnet policy file maps a specific identity into
+# the `tailnet-admins` group via a tailscale.com/cap/kubernetes impersonate rule,
+# and this binding is what makes that group mean anything. Neither half grants
+# access on its own, and no personal identifier lives in this public repo.
+#
+#   "app": {
+#     "tailscale.com/cap/kubernetes": [
+#       {"impersonate": {"groups": ["tailnet-admins"]}}
+#     ]
+#   }
+#
+# `tailnet-admins` is an ordinary RBAC group, NOT system:masters. system:masters
+# would bypass RBAC entirely, could never be narrowed, and would exist only in the
+# tailnet admin console with nothing in Git. Here ArgoCD owns the grant and scoping
+# it down is a one-word change to roleRef.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tailnet-admins
+subjects:
+  - kind: Group
+    name: tailnet-admins
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
