@@ -9,6 +9,54 @@ spec:
     - repoURL: https://helm.releases.hashicorp.com
       chart: vault
       targetRevision: 0.28.1
+      helm:
+        # NOTE: kubernetes/infra/vault/values.yaml is NOT wired into this
+        # Application and never has been — Vault has always run on chart
+        # defaults. Values belong here, inline, until that file is dealt with.
+        values: |
+          server:
+            standalone:
+              # Replaces the chart's default standalone.config wholesale, so it
+              # restates the defaults verbatim. `disable_mlock = true` is added
+              # by the chart template and is deliberately not repeated here.
+              config: |
+                ui = true
+
+                listener "tcp" {
+                  tls_disable = 1
+                  address = "[::]:8200"
+                  cluster_address = "[::]:8201"
+                }
+
+                storage "file" {
+                  path = "/vault/data"
+                }
+
+                # Auto-unseal. Every AWS-specific value is supplied by
+                # Secret/vault-kms-creds through the env vars below, so nothing
+                # environment-specific lands in this public repo and the same
+                # manifest works against a different key elsewhere.
+                seal "awskms" {}
+
+            # Secret/vault-kms-creds is created by hand, once, in ns vault.
+            # It cannot come from Vault via ESO — Vault needs it to unseal, so
+            # sourcing it from Vault would be circular. Required keys:
+            #   AWS_REGION, VAULT_AWSKMS_SEAL_KEY_ID,
+            #   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+            # If this Secret is missing, vault-0 will not start.
+            extraSecretEnvironmentVars:
+              - envName: AWS_REGION
+                secretName: vault-kms-creds
+                secretKey: AWS_REGION
+              - envName: VAULT_AWSKMS_SEAL_KEY_ID
+                secretName: vault-kms-creds
+                secretKey: VAULT_AWSKMS_SEAL_KEY_ID
+              - envName: AWS_ACCESS_KEY_ID
+                secretName: vault-kms-creds
+                secretKey: AWS_ACCESS_KEY_ID
+              - envName: AWS_SECRET_ACCESS_KEY
+                secretName: vault-kms-creds
+                secretKey: AWS_SECRET_ACCESS_KEY
     - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
       targetRevision: main
       path: kubernetes/infra/vault/extras
