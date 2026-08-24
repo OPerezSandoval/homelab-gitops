@@ -1,0 +1,137 @@
+# Nightly backup of Vault's file storage backend.
+#
+# WHAT THIS IS NOT: a copy you can read. Vault encrypts everything it writes
+# with a root key that the seal wraps, so this archive is SEALED DATA. Restoring
+# it requires the same seal that produced it — today the 3-of-5 Shamir shares.
+# A backup without those keys restores nothing. Keep them offline, and keep them
+# somewhere other than the Pavilion.
+#
+# CONSISTENCY: this is a crash-consistent copy of the file backend, not a
+# transactional snapshot. Vault's file backend writes each key to its own file
+# and renames into place, so individual entries are never torn; what a tar
+# cannot guarantee is that two files written moments apart land in the same
+# archive. That is the same state Vault would find after a power cut, which it
+# is built to survive. `vault operator raft snapshot` is the stronger tool and
+# is not available on the `file` backend — it needs integrated storage.
+#
+# Runs the same hashicorp/vault image the server runs: nothing new to pull,
+# patch or trust, and it is already on the node. busybox tar, invoked via sh.
+#
+# Mounting data-vault-0 from a second pod works because ReadWriteOnce means one
+# NODE, not one pod, and this is a single-node cluster. Mounted readOnly so this
+# job can never write to Vault's own storage.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-backup
+  namespace: vault
+spec:
+  # 03:37, staggered off medtracker's 04:17 so two jobs are not competing for
+  # the same NFS export at once.
+  schedule: "37 3 * * *"
+  timeZone: America/Chicago
+  # Forbid, not Replace: two concurrent runs would race on retention pruning.
+  # A skipped run is recoverable; a corrupt backup that looks successful is not.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            # Matches the Vault server pod. /vault/data is drwx------ owned by
+            # 100:1000, so uid 100 is required to read it at all — the group
+            # bit alone is not enough.
+            runAsUser: 100
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: hashicorp/vault:1.17.2
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+
+                  SRC=/vault/data
+                  DEST_DIR=/backups
+                  KEEP_DAYS=14
+
+                  if [ ! -d "$SRC" ]; then
+                    echo "FATAL: $SRC does not exist" >&2
+                    exit 1
+                  fi
+
+                  STAMP=$(date -u +%Y%m%d_%H%M%S)
+                  DEST="$DEST_DIR/vault_$STAMP.tar.gz"
+                  PARTIAL="$DEST.partial"
+
+                  echo "source $SRC ($(du -sh "$SRC" | cut -f1)) -> $DEST"
+
+                  # Write to .partial and rename only on success, so an
+                  # interrupted run can never leave a truncated file that looks
+                  # like a backup.
+                  tar -czf "$PARTIAL" -C /vault data
+
+                  # Prove the archive is readable and actually contains Vault's
+                  # storage before trusting it. An empty-but-valid tarball is
+                  # the failure this catches.
+                  if ! tar -tzf "$PARTIAL" >/dev/null 2>&1; then
+                    echo "FATAL: archive is not readable" >&2
+                    rm -f "$PARTIAL"
+                    exit 1
+                  fi
+                  if ! tar -tzf "$PARTIAL" 2>/dev/null | grep -q '^data/core/'; then
+                    echo "FATAL: archive has no data/core/ — refusing to keep it" >&2
+                    rm -f "$PARTIAL"
+                    exit 1
+                  fi
+
+                  ENTRIES=$(tar -tzf "$PARTIAL" | wc -l)
+                  mv "$PARTIAL" "$DEST"
+                  echo "ok: $(wc -c < "$DEST") bytes, $ENTRIES entries"
+
+                  # Retention. Only ever removes files this job created.
+                  # Any leftover .partial from a killed run goes too.
+                  find "$DEST_DIR" -maxdepth 1 -type f -name 'vault_*.tar.gz' \
+                    -mtime +$KEEP_DAYS -print -delete
+                  find "$DEST_DIR" -maxdepth 1 -type f -name '*.partial' \
+                    -mtime +1 -print -delete
+
+                  KEPT=$(find "$DEST_DIR" -maxdepth 1 -type f -name 'vault_*.tar.gz' | wc -l)
+                  echo "retention: $KEPT kept"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              volumeMounts:
+                - mountPath: /vault/data
+                  name: vault-data
+                  readOnly: true
+                - mountPath: /backups
+                  name: vault-backups
+          volumes:
+            - name: vault-data
+              persistentVolumeClaim:
+                claimName: data-vault-0
+                readOnly: true
+            - name: vault-backups
+              persistentVolumeClaim:
+                claimName: vault-backups

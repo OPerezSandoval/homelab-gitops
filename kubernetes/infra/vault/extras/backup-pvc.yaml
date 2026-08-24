@@ -1,0 +1,22 @@
+# Backup target, deliberately a separate volume from Vault's data PVC so a
+# mistake that empties one does not take the other with it.
+#
+# Same NFS export and therefore the same physical disk: this protects against
+# application-level loss (a bad seal migration, an accidental `delete pvc`,
+# corruption) and NOT against that disk failing, or against the house burning
+# down. Offsite copies are a separate problem and are still unsolved.
+#
+# 2Gi is generous: /vault/data is ~350Ki today, so 14 compressed dailies are a
+# few megabytes. Sized for growth, not for the current footprint.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vault-backups
+  namespace: vault
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-storage
+  resources:
+    requests:
+      storage: 2Gi
