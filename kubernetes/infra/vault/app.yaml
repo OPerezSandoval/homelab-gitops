@@ -9,6 +9,24 @@ spec:
     - repoURL: https://helm.releases.hashicorp.com
       chart: vault
       targetRevision: 0.28.1
+      helm:
+        # NOTE: kubernetes/infra/vault/values.yaml is NOT wired into this
+        # Application and never has been — Vault runs on chart defaults. Values
+        # belong here, inline, until that dead file is dealt with.
+        values: |
+          server:
+            dataStorage:
+              # Moves Vault's file storage backend off the Pavilion's NFS export
+              # onto the node's own disk. This is the change that finally lets the
+              # cluster recover from a power cut with the Pavilion powered OFF:
+              # Vault was the root of the dependency chain, because a sealed or
+              # unstartable Vault takes ESO, and therefore every ExternalSecret,
+              # down with it.
+              #
+              # Requires deleting and recreating the StatefulSet — volumeClaimTemplates
+              # is immutable, so this cannot be applied to the running STS. The data
+              # copy happens out-of-band while Vault is stopped. See the PR.
+              storageClass: local-path
     - repoURL: https://github.com/OPerezSandoval/homelab-gitops.git
       targetRevision: main
       path: kubernetes/infra/vault/extras
