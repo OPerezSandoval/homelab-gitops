@@ -5,6 +5,7 @@ resources:
   - argocd
   - authentik
   - backstage
+  - backup-offsite
   - cilium
   - cloudflare
   - cnpg-operator

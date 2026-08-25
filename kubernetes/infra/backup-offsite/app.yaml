@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backup-offsite
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops
+    targetRevision: main
+    path: kubernetes/infra/backup-offsite/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: backup-offsite
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+  ignoreDifferences:
+    # ESO's CRD schema defaults these optional fields server-side; they aren't in
+    # our manifest, so ArgoCD would otherwise report perpetual OutOfSync drift.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+        - .spec.target.deletionPolicy
+        - .spec.target.template.engineVersion
+        - .spec.target.template.mergePolicy
