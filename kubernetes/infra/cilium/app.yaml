@@ -14,6 +14,22 @@ spec:
       targetRevision: 1.19.5
       helm:
         valuesObject:
+          # Pinned, NOT auto-detected. Cilium probes network devices and takes the
+          # MINIMUM MTU across them. Once the Talos tailscale extension added a
+          # tailscale0 interface (MTU 1280) to the node, Cilium attached to it --
+          #   Devices: eno1 192.168.1.86 (Direct Routing), tailscale0 100.114.237.29
+          # -- and dropped the cluster MTU from 1450 to 1280. Every pod inherited it.
+          #
+          # The damage is invisible in latency and brutal in throughput: the
+          # tailscale ingress proxies run WireGuard INSIDE a 1280-MTU pod, so their
+          # tunnel MTU shrinks again and path-MTU discovery breaks. Measured on
+          # 2026-08-24: pings 20ms and healthy, while a 3.4MB asset over a DIRECT
+          # LAN path took 48 SECONDS at 72KB/s.
+          #
+          # 1450 = eno1's 1500 minus 50 bytes of VXLAN overhead (routing-mode: tunnel).
+          # Revisit if the physical NIC MTU changes or routing-mode moves to native.
+          MTU: 1450
+
           k8sServiceHost: 192.168.1.86
           k8sServicePort: 6443
           kubeProxyReplacement: true
