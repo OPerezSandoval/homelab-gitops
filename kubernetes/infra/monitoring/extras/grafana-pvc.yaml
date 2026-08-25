@@ -1,0 +1,23 @@
+# Grafana's data volume, moved off the Pavilion's NFS export onto the node's
+# own disk (local-path) so monitoring comes back after a power cut without a
+# second machine being powered on.
+#
+# Declared here rather than by the kube-prometheus-stack subchart because
+# storageClassName is IMMUTABLE on an existing PVC: the chart-created
+# `monitoring-grafana` PVC could not be flipped in place. The chart is pointed
+# at this claim via grafana.persistence.existingClaim.
+#
+# The old `monitoring-grafana` PVC is deliberately left behind. nfs-storage is
+# reclaimPolicy Retain, so it remains a free rollback until this is proven.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-local
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi

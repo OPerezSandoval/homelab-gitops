@@ -82,8 +82,12 @@ spec:
             envFromSecret: grafana-secrets
             persistence:
               enabled: true
-              storageClassName: nfs-storage
-              size: 5Gi
+              # PVC declared in extras/grafana-pvc.yaml on the `local-path`
+              # class, not created by this chart. storageClassName is immutable
+              # on an existing PVC, so moving off nfs-storage required a new
+              # claim rather than an in-place edit. storageClassName/size are
+              # ignored when existingClaim is set.
+              existingClaim: grafana-local
             # Tailnet ingress for admin-UI access (matches the cluster convention).
             # OIDC login works over the tailnet: the browser reaches Authentik at
             # the public auth.archeflow.com, and Grafana's token backchannel does
