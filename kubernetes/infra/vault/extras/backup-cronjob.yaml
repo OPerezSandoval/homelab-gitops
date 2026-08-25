@@ -1,4 +1,4 @@
-# Nightly backup of Vault's file storage backend.
+# Periodic backup of Vault's file storage backend (every 6 hours).
 #
 # WHAT THIS IS NOT: a copy you can read. Vault encrypts everything it writes
 # with a root key that the seal wraps, so this archive is SEALED DATA. Restoring
@@ -26,9 +26,13 @@ metadata:
   name: vault-backup
   namespace: vault
 spec:
-  # 03:37, staggered off medtracker's 04:17 so two jobs are not competing for
-  # the same NFS export at once.
-  schedule: "37 3 * * *"
+  # Every 6 hours at :37 (03:37, 09:37, 15:37, 21:37), staggered off
+  # medtracker's 04:17 so two jobs are not competing for the same NFS export.
+  #
+  # Nightly was the wrong RPO once Vault's data moves to node-local storage:
+  # a rebuild would lose up to 24h of secrets. /vault/data is ~350Ki, so four
+  # runs a day cost nothing — 14 days of retention is ~56 archives, a few MB.
+  schedule: "37 */6 * * *"
   timeZone: America/Chicago
   # Forbid, not Replace: two concurrent runs would race on retention pruning.
   # A skipped run is recoverable; a corrupt backup that looks successful is not.
