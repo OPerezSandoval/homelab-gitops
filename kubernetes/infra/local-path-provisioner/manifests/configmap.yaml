@@ -8,9 +8,18 @@
 # config, or the helper pod cannot see it:
 #   ~/talos-rebuild-prep/talos/patches/local-path-kubelet-mounts.yaml
 #
-# !!! `talosctl upgrade` WIPES the EPHEMERAL partition unless --preserve is
-# passed. Anything provisioned here goes with it. The nightly Vault backup
-# CronJob is the mitigation, not the prevention.
+# "EPHEMERAL" is Talos's name for the partition's role, NOT a statement about
+# durability. It is /dev/sda4, a 4TB XFS filesystem on the SSD mounted at /var,
+# and it survives reboots and power loss like any other filesystem — etcd lives
+# here too. Volumes provisioned here are as persistent as the disk.
+#
+# What DOES destroy it: an explicit `talosctl reset`, or a reinstall. Those are
+# deliberate acts, and the nightly Vault backup CronJob covers them.
+#
+# The trade this class makes: NFS survives a node rebuild but needs a second
+# machine powered on; local-path survives reboots and outages but not a node
+# wipe. For control-plane data that must come back unattended, the second
+# failure mode is the one you can plan around.
 apiVersion: v1
 kind: ConfigMap
 metadata:
