@@ -1,0 +1,62 @@
+# Where PersistentVolumes physically live on the node.
+#
+# /var/mnt/local-path-provisioner (NOT the upstream default of
+# /opt/local-path-provisioner): Talos is immutable and /opt is an overlay, so
+# volumes there would not survive. /var is the writable EPHEMERAL partition.
+#
+# This path REQUIRES a matching kubelet extraMounts bind in the Talos machine
+# config, or the helper pod cannot see it:
+#   ~/talos-rebuild-prep/talos/patches/local-path-kubelet-mounts.yaml
+#
+# "EPHEMERAL" is Talos's name for the partition's role, NOT a statement about
+# durability. It is /dev/sda4, a 4TB XFS filesystem on the SSD mounted at /var,
+# and it survives reboots and power loss like any other filesystem — etcd lives
+# here too. Volumes provisioned here are as persistent as the disk.
+#
+# What DOES destroy it: an explicit `talosctl reset`, or a reinstall. Those are
+# deliberate acts, and the nightly Vault backup CronJob covers them.
+#
+# The trade this class makes: NFS survives a node rebuild but needs a second
+# machine powered on; local-path survives reboots and outages but not a node
+# wipe. For control-plane data that must come back unattended, the second
+# failure mode is the one you can plan around.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: local-path-config
+  namespace: local-path-storage
+data:
+  config.json: |-
+    {
+            "nodePathMap":[
+            {
+                    "node":"DEFAULT_PATH_FOR_NON_LISTED_NODES",
+                    "paths":["/var/mnt/local-path-provisioner"]
+            }
+            ]
+    }
+  setup: |-
+    #!/bin/sh
+    set -eu
+    mkdir -m 0777 -p "$VOL_DIR"
+  teardown: |-
+    #!/bin/sh
+    set -eu
+    rm -rf "$VOL_DIR"
+  # Upstream ships this image untagged, which resolves to :latest — an
+  # unpinned root-capable pod in the provisioning path. Pinned here.
+  helperPod.yaml: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: helper-pod
+    spec:
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
+      containers:
+      - name: helper-pod
+        image: docker.io/library/busybox:1.37
+        imagePullPolicy: IfNotPresent

@@ -1,0 +1,17 @@
+# Deliberately NOT the cluster default — nfs-storage keeps that role, so
+# nothing silently relocates. PVCs opt in with storageClassName: local-path.
+#
+# reclaimPolicy: Retain (upstream ships Delete) to match nfs-storage. This
+# volume class is for Vault, Authentik's database and monitoring; a deleted
+# PVC should leave the data on disk, not remove it. Orphaned directories under
+# /var/mnt/local-path-provisioner are cleaned up by hand.
+#
+# WaitForFirstConsumer is required, not cosmetic: the volume is a directory on
+# one specific node, so binding cannot happen before scheduling.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-path
+provisioner: rancher.io/local-path
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain

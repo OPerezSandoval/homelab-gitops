@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: local-path-provisioner
+  namespace: argo-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops
+    targetRevision: main
+    path: kubernetes/infra/local-path-provisioner/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: local-path-storage
+  syncPolicy:
+    automated:
+      # Storage infra: never let a transient render error prune the
+      # provisioner or StorageClass out from under bound PVs. Manual cleanup only.
+      # Same reasoning as nfs-provisioner.
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
