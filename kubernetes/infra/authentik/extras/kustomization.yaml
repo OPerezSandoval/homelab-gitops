@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - external-secret.yaml
   - postgres-cluster.yaml
+  - postgres-cluster-local.yaml

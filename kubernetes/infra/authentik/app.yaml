@@ -25,7 +25,7 @@ spec:
           authentik:
             # Point at the CNPG read-write service; password comes from envFrom above.
             postgresql:
-              host: authentik-db-rw
+              host: authentik-db-local-rw
               name: authentik
               user: authentik
               port: 5432
