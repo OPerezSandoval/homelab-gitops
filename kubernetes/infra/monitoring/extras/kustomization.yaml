@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - external-secret.yaml
+  - grafana-pvc.yaml
