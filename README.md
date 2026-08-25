@@ -217,6 +217,11 @@ To add a new secret:
 
 ## Disaster recovery
 
+> **See [`docs/DR-RUNBOOK.md`](docs/DR-RUNBOOK.md) for the full runbook** —
+> triage order, what *not* to do during the ESO cascade, Talos upgrade
+> requirements, backup/restore procedure, and the traps that have actually
+> bitten. The summary below covers the one manual step in a normal recovery.
+
 ### Vault unseal
 
 Vault comes up sealed after any pod restart. Unseal with three of the five keys:
