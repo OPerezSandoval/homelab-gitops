@@ -1,0 +1,119 @@
+# Tier 3 of the backup story: an encrypted copy that leaves the house.
+#
+#   live data  -> the node's own disk (local-path) or NFS
+#   backup     -> NFS on the Pavilion   (survives a node rebuild)
+#   OFFSITE    -> Cloudflare R2, this job (survives the house)
+#
+# Backs up the NFS export itself rather than individual PVCs, because a pod can
+# only mount PVCs from its own namespace and the data spans many. Mounting the
+# export directly gets everything in one job, read-only.
+#
+# WHY ROOT: the export is `no_root_squash`, and some files are not
+# world-readable (n8n config, grafana.db). A non-root job would silently skip
+# them and produce a backup that looks complete and is not. Root here reads;
+# it never writes — the mount is readOnly.
+#
+# restic encrypts client-side, so R2 never sees plaintext and losing the R2
+# account means losing a COPY, not the data. The tradeoff is that the restic
+# password becomes load-bearing — see external-secret.yaml.
+#
+# Prometheus is deliberately excluded: 4.6GB of the 5.3GB total, and it is
+# regenerating metrics, not records. Everything else is ~700MB, which sits
+# inside R2's 10GB free tier with room for months of deduplicated snapshots.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: offsite-backup
+  namespace: backup-offsite
+spec:
+  # 05:17 — after medtracker (04:17) and the 03:37 Vault run, so it captures
+  # the freshest local backups rather than racing them.
+  schedule: "17 5 * * *"
+  timeZone: America/Chicago
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: restic
+              image: docker.io/restic/restic:0.19.1
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: restic-r2
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+
+                  # First run initialises the repo. `restic init` on an existing
+                  # repo is an error, so probe first rather than ignoring errors.
+                  if ! restic cat config >/dev/null 2>&1; then
+                    echo "repository not initialised — creating it"
+                    restic init
+                  fi
+
+                  echo "=== backup ==="
+                  restic backup /data \
+                    --tag homelab \
+                    --host pavillion \
+                    --exclude '*prometheus*' \
+                    --exclude '*/lost+found' \
+                    --exclude '*.partial'
+
+                  echo "=== retention ==="
+                  restic forget \
+                    --tag homelab \
+                    --keep-daily 14 \
+                    --keep-weekly 8 \
+                    --keep-monthly 6 \
+                    --prune
+
+                  # Metadata-only integrity check. Cheap, and catches a corrupt
+                  # index long before a restore does.
+                  echo "=== check ==="
+                  restic check
+
+                  echo "=== snapshots ==="
+                  restic snapshots --tag homelab --compact | tail -20
+              securityContext:
+                # See WHY ROOT above.
+                runAsUser: 0
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                capabilities:
+                  drop:
+                    - ALL
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  memory: 1Gi
+              volumeMounts:
+                - name: nfs-data
+                  mountPath: /data
+                  readOnly: true
+                - name: cache
+                  mountPath: /root/.cache/restic
+          volumes:
+            # The NFS export directly, not a PVC: PVCs are namespaced and this
+            # data spans many namespaces. Read-only, so this job can never
+            # damage what it is protecting.
+            - name: nfs-data
+              nfs:
+                server: 192.168.1.85
+                path: /mnt/ssd/k8s
+                readOnly: true
+            # restic's cache makes `forget --prune` dramatically cheaper.
+            # emptyDir: rebuilt if lost, not worth a PVC.
+            - name: cache
+              emptyDir:
+                sizeLimit: 2Gi
