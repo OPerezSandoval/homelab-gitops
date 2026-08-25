@@ -1,0 +1,68 @@
+# Authentik's Postgres, moved off the Pavilion's NFS export onto the node's own
+# disk so the cluster comes back after a power cut without a second machine
+# being powered on.
+#
+# WHY A SECOND CLUSTER: storage.storageClass cannot be changed on a running
+# CNPG cluster — the underlying PVC field is immutable. And unlike Grafana this
+# cannot be rsync'd: a file-level copy of a live Postgres data directory is not
+# a valid backup. CNPG's own `bootstrap.initdb.import` runs pg_dump/pg_restore
+# against the source cluster, which is the supported migration path.
+#
+# `type: microservice` imports exactly one database over an ordinary connection
+# using the app credentials that already exist — no superuser access needed.
+#
+# The old `authentik-db` cluster keeps running untouched throughout and is
+# deleted in a separate PR only once this is proven. That is the rollback.
+#
+# encoding/locale are stated explicitly rather than left to defaults: they must
+# match the source or pg_restore can produce subtly wrong index ordering. These
+# are the values the live cluster reports.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: authentik-db-local
+  namespace: authentik
+spec:
+  # Single-node homelab: one instance. Bump to 3 once there are >1 worker nodes.
+  instances: 1
+  primaryUpdateStrategy: unsupervised
+
+  # CNPG creates a PodDisruptionBudget for the primary with minAvailable=1.
+  # With one instance there is no replica to fail over to, so that PDB permits
+  # ZERO disruptions and blocks `talosctl upgrade` draining the node forever —
+  # exactly what happened on 2026-08-24. On a single-node cluster the PDB
+  # protects nothing it can actually deliver.
+  enablePDB: false
+
+  storage:
+    size: 5Gi
+    storageClass: local-path
+
+  bootstrap:
+    initdb:
+      database: authentik
+      owner: authentik
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+      # Same ESO-synced basic-auth secret the old cluster uses, so the app
+      # password is unchanged and Authentik's config needs no new credential.
+      secret:
+        name: authentik-db-app
+      import:
+        type: microservice
+        databases:
+          - authentik
+        source:
+          externalCluster: authentik-db-source
+
+  externalClusters:
+    - name: authentik-db-source
+      connectionParameters:
+        host: authentik-db-rw
+        user: authentik
+        dbname: authentik
+        sslmode: require
+      password:
+        name: authentik-db-app
+        key: password
