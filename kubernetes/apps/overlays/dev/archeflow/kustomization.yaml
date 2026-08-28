@@ -7,6 +7,15 @@ resources:
   - ../../../base/archeflow-site/base
   - ingress.yaml
 
+# The base deliberately ships an UNSET placeholder for N8N_CONTACT_PATH so that a
+# missing patch fails visibly in one environment instead of misfiling test leads
+# as real ones. This is that patch.
+patches:
+  - path: deployment-env-patch.yaml
+    target:
+      kind: Deployment
+      name: archeflow-site
+
 replicas:
   - name: archeflow-site
     count: 1

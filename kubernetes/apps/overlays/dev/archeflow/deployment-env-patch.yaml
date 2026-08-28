@@ -1,0 +1,23 @@
+# Dev posts to a separate n8n webhook so test submissions never reach the real
+# lead workflow. Both environments share one n8n instance, so the path is the
+# only separation there is -- see the N8N_CONTACT_PATH comment in the base
+# Deployment for why this is not defaulted there.
+#
+# The workflow at /webhook/contact-dev already exists and must stay ACTIVE. If it
+# is deactivated, n8n returns 404, nginx passes that through, and the dev contact
+# form shows its error state -- contained to dev, and never touching prod leads.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archeflow-site
+spec:
+  template:
+    spec:
+      containers:
+        # Name must match the base container: strategic merge keys the containers
+        # list by `name`, and the env list inside it by `name` too -- which is why
+        # only the one variable being overridden needs to appear here.
+        - name: archeflow-site
+          env:
+            - name: N8N_CONTACT_PATH
+              value: "/webhook/contact-dev"

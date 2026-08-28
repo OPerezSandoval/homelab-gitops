@@ -21,6 +21,43 @@ spec:
           ports:
             - containerPort: 80
               name: http
+          # Consumed by envsubst in the nginx entrypoint at container START, not
+          # by nginx per request -- so a change here only takes effect on a pod
+          # restart, which editing the pod template triggers automatically.
+          #
+          # The site's nginx proxies /api/contact to n8n over cluster DNS. Before
+          # this, the webhook URL was inlined into the JS bundle at build time by
+          # Astro (PUBLIC_* vars are public by design), so it shipped to every
+          # visitor and changing it required rebuilding the image.
+          env:
+            # Port 80, NOT 5678. The n8n Service maps port 80 -> targetPort
+            # `http` (containerPort 5678), and under Cilium's kube-proxy
+            # replacement the socket load balancer only has a frontend on 80 --
+            # dialling :5678 against the Service name matches nothing and nginx
+            # returns 502, which looks exactly like a network policy drop.
+            # No trailing slash: this is concatenated with N8N_CONTACT_PATH.
+            - name: N8N_UPSTREAM
+              value: "http://n8n.n8n.svc.cluster.local:80"
+
+            # n8n runs with N8N_HOST=n8n.archeflow.com / N8N_PROTOCOL=https, so
+            # send the host it advertises rather than the cluster DNS name. Keeps
+            # any absolute URL n8n generates consistent with its external identity.
+            - name: N8N_HOST_HEADER
+              value: "n8n.archeflow.com"
+
+            # Placeholder on purpose -- EVERY overlay must patch this.
+            #
+            # One n8n instance serves both environments, so the webhook path is
+            # the only thing keeping dev submissions out of the real lead
+            # workflow. A genuine shared default would mean that forgetting a
+            # patch silently files test leads as real ones. This value makes n8n
+            # return 404 instead: visibly broken, in one environment, with
+            # nothing reaching the inbox. And because it is still a valid
+            # string, nginx parses the config and the site itself stays up --
+            # an unset variable would leave a literal ${...} that nginx rejects
+            # at parse time, taking the whole site down rather than one form.
+            - name: N8N_CONTACT_PATH
+              value: "/webhook/UNSET-patch-me-in-the-overlay"
           readinessProbe:
             httpGet:
               path: /health
@@ -46,5 +83,12 @@ spec:
               memory: 128Mi
           securityContext:
             allowPrivilegeEscalation: false
+            # Must stay false, and it is now load-bearing: the nginx entrypoint
+            # renders /etc/nginx/templates/*.template into /etc/nginx/conf.d/ at
+            # startup. When that path is read-only the entrypoint logs an error
+            # and then `return 0` -- it does NOT fail -- so nginx execs against a
+            # config still containing ${N8N_UPSTREAM} and dies with an
+            # unrelated-looking "unknown variable". Turning this on requires
+            # emptyDir mounts at /etc/nginx/conf.d, /var/cache/nginx and /var/run.
             readOnlyRootFilesystem: false
             runAsNonRoot: false
