@@ -1,0 +1,22 @@
+# This is the LIVE lead flow: /webhook/contact is the workflow that emails and
+# Slacks real enquiries. Both environments share one n8n instance, so the path is
+# the only separation there is -- see the N8N_CONTACT_PATH comment in the base
+# Deployment for why this is not defaulted there.
+#
+# If this workflow is deactivated, n8n returns 404 and every enquiry is lost while
+# the form still looks alive. Keep it Active.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archeflow-site
+spec:
+  template:
+    spec:
+      containers:
+        # Name must match the base container: strategic merge keys the containers
+        # list by `name`, and the env list inside it by `name` too -- which is why
+        # only the one variable being overridden needs to appear here.
+        - name: archeflow-site
+          env:
+            - name: N8N_CONTACT_PATH
+              value: "/webhook/contact"
