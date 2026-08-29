@@ -21,3 +21,9 @@ spec:
           env:
             - name: N8N_CONTACT_PATH
               value: "/webhook/contact-dev"
+
+            # Chat is dev-only for now. Prod keeps the base placeholder, so
+            # /api/chat 404s there and the widget is not built into prod images.
+            # The workflow at /webhook/chat-dev must exist and be ACTIVE.
+            - name: N8N_CHAT_PATH
+              value: "/webhook/chat-dev"
