@@ -58,6 +58,21 @@ spec:
             # at parse time, taking the whole site down rather than one form.
             - name: N8N_CONTACT_PATH
               value: "/webhook/UNSET-patch-me-in-the-overlay"
+
+            # Chat widget endpoint. Same placeholder discipline as the contact
+            # path above, but note the extra reason it matters here: every
+            # request that reaches the chat workflow spends LLM tokens, so a
+            # path pointing somewhere unintended is a billing problem, not just
+            # a routing one.
+            #
+            # This must always be SET to something, even where chat is not in
+            # use: nginx substitutes it at startup, and an unset variable leaves
+            # a literal ${N8N_CHAT_PATH} that nginx rejects at parse time --
+            # taking the whole site down. Prod deliberately keeps the placeholder
+            # (chat is dev-only for now) so /api/chat 404s there, which pairs
+            # with the widget not being built into prod images at all.
+            - name: N8N_CHAT_PATH
+              value: "/webhook/UNSET-patch-me-in-the-overlay"
           readinessProbe:
             httpGet:
               path: /health
