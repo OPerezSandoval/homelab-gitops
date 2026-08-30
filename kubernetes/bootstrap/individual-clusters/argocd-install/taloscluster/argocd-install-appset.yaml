@@ -1,0 +1,59 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This ApplicationSet deploys ArgoCD to the taloscluster cluster.
+#
+# How it works:
+#   - Reads cluster config from: kubernetes/cluster-config/taloscluster/config.yaml
+#   - Deploys ArgoCD Helm chart from: individual-clusters/argocd-install/{{ overlay }}
+#   - Uses Helm with value files inheritance (base + cluster-specific)
+#
+# Values inheritance:
+#   1. ../values.yaml - Base values shared across clusters
+#   2. values.yaml - Cluster-specific overrides
+#
+# Sync Policy:
+#   - Fully automated sync with prune and self-heal
+#   - CreateNamespace enabled
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd-install-taloscluster
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - git:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops
+        revision: HEAD
+        files:
+          - path: kubernetes/cluster-config/taloscluster/config.yaml
+  template:
+    metadata:
+      name: argocd-install-taloscluster
+    spec:
+      project: "{{ .addons.argocdProject }}"
+      source:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops
+        targetRevision: "{{ .addons.targetRevision }}"
+        path: kubernetes/bootstrap/individual-clusters/argocd-install/{{ .addons.overlay
+          }}
+        helm:
+          releaseName: argocd
+          valueFiles:
+            - ../values.yaml
+            - values.yaml
+      destination:
+        server: "{{ .cluster.address }}"
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -1,0 +1,39 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This is the cluster-admin AppProject for ArgoCD bootstrap and infrastructure.
+#
+# Purpose: Administrative project used by bootstrap ApplicationSets
+#   - Used by individual-clusters ApplicationSets to deploy cluster infrastructure
+#   - Used by cluster-components ApplicationSets to deploy addons and workloads
+#   - Has full permissions on all namespaces and all resources
+#
+# Deletion Protection: This AppProject has deletion protection enabled.
+#   ArgoCD will refuse to delete it even if removal is requested,
+#   preventing accidental deletion of critical infrastructure.
+#
+# Security Note: This project is intended for ArgoCD internal use only.
+#   Application workloads should use cluster-specific AppProjects with
+#   limited permissions instead of this administrative project.
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: cluster-admin
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+spec:
+  description: Administrative project with full permissions for ArgoCD bootstrap
+    and infrastructure management
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: "*"
+      server: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

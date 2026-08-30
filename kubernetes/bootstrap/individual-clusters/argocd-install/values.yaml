@@ -1,0 +1,5 @@
+charts:
+  argo-cd:
+    enabled: # can change whether chart will be deployed
+argo-cd:
+  fullnameOverride: argocd

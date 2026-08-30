@@ -1,0 +1,43 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This Application deploys the ApplicationSet that auto-provisions all clusters.
+#
+# Bootstrap Process:
+#   1. Manually apply cluster-admin AppProject
+#   2. Manually apply this Application (auto-provision-app.yaml)
+#   3. This Application deploys the cluster-appprojects ApplicationSet
+#   4. The ApplicationSet discovers all clusters and creates their infra Applications
+#   5. Each infra Application deploys cluster-specific components
+#
+# What happens after applying this:
+#   ✓ ApplicationSet "cluster-appprojects" is deployed
+#   ✓ For each cluster in cluster-config/*, an "{cluster-name}-infra" Application is created
+#   ✓ Each cluster's AppProjects, Applications, and ApplicationSets are deployed automatically
+#
+# Sync Policy:
+#   - Fully automated sync with prune and self-heal
+#   - Changes to the ApplicationSet are automatically applied
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auto-provision
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+spec:
+  project: cluster-admin
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops
+    targetRevision: HEAD
+    path: kubernetes/bootstrap/auto-provision-clusters
+    directory:
+      include: "*-appset.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

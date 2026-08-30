@@ -1,0 +1,5 @@
+charts:
+  argo-cd:
+    enabled: true
+argo-cd:
+  fullnameOverride: argocd

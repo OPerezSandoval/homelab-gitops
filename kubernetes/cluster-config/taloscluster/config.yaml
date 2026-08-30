@@ -1,0 +1,35 @@
+###########################################################################
+# CLUSTER CONFIGURATION - TALOSCLUSTER
+#
+# This file is discovered by ApplicationSets to configure cluster-specific
+# deployments. The cluster-appprojects ApplicationSet scans cluster-config/*/config.yaml
+# to auto-provision infrastructure for all clusters.
+#
+# Required Fields:
+#   enabled: Whether this cluster is active
+#   cluster.name: Cluster identifier (used in Application names)
+#   cluster.address: Kubernetes API server URL
+#   workloads.argocdProject: AppProject for workload Applications
+#   addons.argocdProject: AppProject for addon Applications
+#   addons.overlay: Folder name for addon deployments
+#
+# Optional Fields:
+#   cluster.project: Cloud project/account ID
+#   cluster.location: Geographic location
+#   cluster.cloudProvider: Cloud provider (gcp, aws, azure, other)
+#   workloads.targetRevision: Git revision for workloads (default: HEAD)
+#   addons.targetRevision: Git revision for addons (default: HEAD)
+###########################################################################
+enabled: true
+workloads:
+  argocdProject: taloscluster-workloads
+  targetRevision: HEAD
+addons:
+  argocdProject: taloscluster-addons
+  overlay: taloscluster
+  targetRevision: HEAD
+cluster:
+  name: taloscluster
+  address: https://kubernetes.default.svc
+  location: mars
+  cloudProvider: other

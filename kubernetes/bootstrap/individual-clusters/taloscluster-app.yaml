@@ -1,0 +1,37 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This Application deploys component ApplicationSets for taloscluster.
+#
+# What gets deployed:
+#   ✓ Addons Application (discovers addon ApplicationSets per cluster)
+#   ✓ Workloads Application (discovers workload ApplicationSets per cluster)
+#
+# Sync Policy:
+#   - Fully automated sync with prune and self-heal.
+#     ArgoCD auto-applies changes, removes deleted resources, and reverts
+#     manual cluster changes back to Git state.
+#
+# Use case: Distributed ArgoCD (each cluster manages itself)
+# Deploy this Application to the cluster it represents.
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taloscluster-infra
+  namespace: argocd
+spec:
+  project: cluster-admin
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops
+    targetRevision: HEAD
+    path: kubernetes/bootstrap/cluster-components/taloscluster
+    directory:
+      include: "*.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

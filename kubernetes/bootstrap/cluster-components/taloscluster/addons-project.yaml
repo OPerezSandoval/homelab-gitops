@@ -1,0 +1,34 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This AppProject defines permissions for the taloscluster cluster.
+# It is referenced by the cluster-specific Applications and used
+# as the project for all addons deployed to this cluster.
+#
+# Purpose: Define AppProject for taloscluster cluster
+#
+# Deletion Protection: This AppProject has deletion protection enabled.
+#   ArgoCD will refuse to delete it even if removal is requested,
+#   preventing accidental deletion of cluster access configuration.
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: taloscluster-addons
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: AppProject for taloscluster addons
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: "*"
+      server: "*"
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

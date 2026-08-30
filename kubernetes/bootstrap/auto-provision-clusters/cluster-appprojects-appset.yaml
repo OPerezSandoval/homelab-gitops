@@ -1,0 +1,62 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This ApplicationSet auto-provisions your entire ArgoCD infrastructure.
+#
+# How it works:
+#   - Scans: cluster-config/*/config.yaml to discover all clusters
+#   - Creates: One Application per cluster named "{cluster-name}-infra"
+#   - Each Application deploys from single source:
+#       Path: bootstrap/cluster-components/{{ .cluster.name }}
+#       Contains: All AppProjects, Applications, and ApplicationSets for that cluster
+#
+# What gets deployed (per cluster):
+#   ✓ AppProjects for that cluster (workloads and addons)
+#   ✓ Addons Application (discovers addon ApplicationSets per cluster)
+#   ✓ Workloads Application (discovers workload ApplicationSets per cluster)
+#
+# Sync Policy:
+#   - ApplicationSet level: Preserve-on-delete enabled. When this
+#     ApplicationSet is removed from Git, created Applications remain active.
+#   - Application level: Fully automated sync with prune and self-heal.
+#     ArgoCD auto-applies changes, removes deleted resources, and reverts
+#     manual cluster changes back to Git state.
+#
+# Use case: Centralized ArgoCD (one ArgoCD manages all clusters)
+# Deploy this once to your management cluster to bootstrap everything.
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-appprojects
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - git:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops
+        revision: HEAD
+        files:
+          - path: kubernetes/cluster-config/*/config.yaml
+  template:
+    metadata:
+      name: "{{ .cluster.name }}-infra"
+    spec:
+      project: cluster-admin
+      source:
+        repoURL: https://github.com/OPerezSandoval/homelab-gitops
+        targetRevision: HEAD
+        path: kubernetes/bootstrap/cluster-components/{{ .cluster.name }}
+        directory:
+          include: "*.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

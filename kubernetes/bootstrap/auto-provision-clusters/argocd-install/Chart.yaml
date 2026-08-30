@@ -1,0 +1,11 @@
+apiVersion: v2
+name: argocd-install
+description: ArgoCD installation Helm chart
+type: application
+version: 1.0.0
+dependencies:
+  - name: argo-cd
+    version: 9.3.5
+    repository: https://argoproj.github.io/argo-helm
+    condition: charts.argo-cd.enabled
+    alias: argo-cd

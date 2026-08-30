@@ -1,0 +1,41 @@
+###########################################################################
+# AUTO-GENERATED FILE - DO NOT EDIT MANUALLY
+#
+# This Application discovers and deploys addons components for taloscluster cluster.
+#
+# How it works:
+#   - Searches for: kubernetes/addons/**/taloscluster/*-appset.yaml
+#   - Deploys discovered ApplicationSets to ArgoCD
+#   - Those ApplicationSets then deploy actual resources to target clusters
+#
+# This enables automatic discovery of addons components organized by cluster.
+#
+# Sync Policy:
+#   - Fully automated sync with prune and self-heal.
+#     ArgoCD auto-applies changes, removes deleted resources, and reverts
+#     manual cluster changes back to Git state.
+###########################################################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: taloscluster-addons
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: taloscluster-addons
+  source:
+    repoURL: https://github.com/OPerezSandoval/homelab-gitops
+    targetRevision: HEAD
+    path: kubernetes/addons
+    directory:
+      recurse: true
+      include: "**/*/taloscluster/*-appset.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
