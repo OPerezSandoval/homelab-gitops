@@ -31,7 +31,12 @@ replicas:
     count: 1
 
 images:
+  # Pinned, not :latest. Every consumer path was characterised against
+  # 1.9.14 (see the nest: findings in the PR); a silent upgrade changing
+  # that behaviour would be a bad thing to debug twice.
+  - name: alexxit/go2rtc
+    newTag: "1.9.14"
   - name: operez11/home-assistant-backend
-    newTag: "0.2.0"
+    newTag: "dev-b391d59"
   - name: operez11/home-assistant-frontend
-    newTag: "0.2.0"
+    newTag: "dev-b391d59"
