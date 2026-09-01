@@ -1,0 +1,47 @@
+# Mounted read-only at /config/configuration.yaml from a ConfigMap.
+# Home Assistant only reads this file; it writes .storage/ and
+# home-assistant_v2.db, which live on the hass-config PVC.
+
+default_config:
+
+http:
+  # HA sits behind the tailscale ingress proxy, so it sees that proxy's
+  # pod IP rather than the real client. Without this it rejects every
+  # request with "A request from a reverse proxy was received...".
+  use_x_forwarded_for: true
+  trusted_proxies:
+    # Cilium cluster-pool pod CIDR on this cluster. The scaffold's
+    # 10.244.0.0/16 was a placeholder and is wrong here.
+    - 10.0.0.0/8
+    # Service CIDR. Inside the range above, listed for clarity.
+    - 10.96.0.0/12
+
+# Point HA at the standalone go2rtc rather than letting it manage its
+# own. HA's managed instance binds its API to 127.0.0.1 inside the
+# container, which the external dashboard cannot reach.
+go2rtc:
+  url: http://go2rtc:1984
+
+# Auto-discovery relies on mDNS and will not cross cluster networking.
+# Add integrations explicitly instead:
+#
+#   Settings > Devices & Services > Add Integration
+#     - ONVIF   -> the Wansview, BY IP (not discovery). Gives PTZ as
+#                  service calls.
+#     - Nest    -> the Device Access project + OAuth client.
+#     - Met.no  -> weather, no API key needed.
+#
+# On the Nest integration: the original design had video flowing solely
+# through go2rtc's native `nest:` source, because it can extend a wired
+# camera's stream past Google's 5-minute cap and HA's integration cannot.
+# That source is currently broken against this account -- it authenticates
+# and receives megabytes of H264, but exposes an empty track to consumers,
+# on every go2rtc release from 1.8.5 to master. So the Nest integration
+# here is not only for events: whether it can also serve the video is the
+# open question this deployment exists to answer.
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.onvif: info
+    homeassistant.components.nest: info

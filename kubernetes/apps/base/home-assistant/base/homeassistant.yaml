@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homeassistant
+spec:
+  replicas: 1
+  strategy:
+    # HA keeps a SQLite recorder DB on an RWO volume. Two pods holding it
+    # at once corrupts it, so never let a rollout overlap.
+    type: Recreate
+  selector:
+    matchLabels: { app: homeassistant }
+  template:
+    metadata:
+      labels: { app: homeassistant }
+    spec:
+      containers:
+        - name: homeassistant
+          image: ghcr.io/home-assistant/home-assistant:stable
+          env:
+            - { name: TZ, value: "America/Chicago" }
+          ports:
+            - { containerPort: 8123, name: http }
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            # configuration.yaml is delivered as a read-only ConfigMap
+            # rather than written into the PVC by hand: the ticket's
+            # "exec into the pod" step is a live-cluster write, which this
+            # repo forbids. HA only ever reads this file -- it writes
+            # .storage/ and home-assistant_v2.db, both of which stay on
+            # the PVC -- so mounting it read-only is safe.
+            - name: hass-config-file
+              mountPath: /config/configuration.yaml
+              subPath: configuration.yaml
+              readOnly: true
+          # HA is slow to start on first boot -- it downloads and compiles
+          # frontend assets. A tight liveness probe will restart-loop it
+          # forever. Give startup a generous budget (10 minutes).
+          startupProbe:
+            httpGet: { path: /, port: 8123 }
+            periodSeconds: 10
+            failureThreshold: 60
+          livenessProbe:
+            httpGet: { path: /, port: 8123 }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { memory: 2Gi }
+      volumes:
+        - name: config
+          persistentVolumeClaim: { claimName: hass-config }
+        - name: hass-config-file
+          configMap: { name: hass-config-file }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homeassistant
+spec:
+  selector: { app: homeassistant }
+  ports:
+    - { port: 8123, targetPort: 8123 }
