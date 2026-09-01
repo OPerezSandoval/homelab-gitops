@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: home-assistant-prod
+
+resources:
+  - namespace.yaml
+  - ../../../base/home-assistant/base
+  - pvc.yaml
+  - ingress.yaml
+  - external-secret.yaml
+
+# Hash-suffixed so a config change rolls the pods that consume it, rather
+# than leaving them running against a stale mount.
+configMapGenerator:
+  - name: go2rtc-config
+    files:
+      - files/go2rtc.yaml
+  - name: hass-config-file
+    files:
+      - files/configuration.yaml
+
+replicas:
+  - name: homeassistant
+    count: 1
+  - name: go2rtc
+    count: 1
+  - name: backend
+    count: 1
+  - name: frontend
+    count: 1
+
+images:
+  # Pinned, not :latest. Every consumer path was characterised against
+  # 1.9.14 (see the nest: findings in the PR); a silent upgrade changing
+  # that behaviour would be a bad thing to debug twice.
+  - name: alexxit/go2rtc
+    newTag: "1.9.14"
+  - name: operez11/home-assistant-backend
+    newTag: "dev-b391d59"
+  - name: operez11/home-assistant-frontend
+    newTag: "dev-b391d59"

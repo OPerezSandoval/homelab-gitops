@@ -1,0 +1,44 @@
+# Exists solely to keep the Home Assistant long-lived token server-side.
+# The browser never sees it, and the API surface is deliberately narrow:
+# a camera roster with entity IDs stripped, availability state, and an
+# allowlisted PTZ verb set.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: backend }
+  template:
+    metadata:
+      labels: { app: backend }
+    spec:
+      containers:
+        - name: backend
+          image: operez11/home-assistant-backend
+          env:
+            - { name: HASS_URL, value: "http://homeassistant:8123" }
+            - { name: GO2RTC_URL, value: "http://go2rtc:1984" }
+          # HASS_TOKEN only. Kept separate from home-assistant-secrets so
+          # that go2rtc and the whole video path do not wait on a token
+          # that cannot exist until HA has been onboarded by hand.
+          envFrom:
+            - secretRef: { name: home-assistant-backend-secrets }
+          ports:
+            - { containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /api/cameras, port: 8080 }
+            initialDelaySeconds: 5
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector: { app: backend }
+  ports:
+    - { port: 8080, targetPort: 8080 }

@@ -1,0 +1,55 @@
+# Source of truth for this file is the app repo:
+#   OPerezSandoval/home-assistant -> go2rtc/go2rtc.yaml
+# Copied here because the cluster needs it as a ConfigMap. Keep the two
+# in step when changing streams.
+#
+# Every credential is a ${VAR} expanded by go2rtc at runtime from
+# home-assistant-secrets, so this file holds no secret material.
+# go2rtc — the one place every camera becomes a WebRTC stream.
+#
+# Wansview  : local RTSP, always available, cheap to keep hot.
+# Nest      : cloud WebRTC via the SDM API. 5-minute sessions.
+#             Wired cams can be extended; battery cams cannot, so
+#             go2rtc has to re-negotiate. Keep battery cams on-demand.
+
+api:
+  listen: ":1984"
+  origin: "*" # tighten once it's behind the ingress
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555/tcp"
+  candidates:
+    # The LAN address a browser can actually reach the node on. Set from
+    # Vault so LAN topology stays out of Git and a VLAN move is a secret
+    # edit, not a manifest change.
+    - ${WEBRTC_CANDIDATE}
+    - stun:8555
+
+log:
+  level: info
+  streams: debug
+
+streams:
+  # ---- Local, RTSP ------------------------------------------------
+  nursery:
+    - rtsp://${WANSVIEW_USER}:${WANSVIEW_PASS}@${WANSVIEW_HOST}:554/live/ch0
+  nursery_sub:
+    - rtsp://${WANSVIEW_USER}:${WANSVIEW_PASS}@${WANSVIEW_HOST}:554/live/ch1
+
+  # ---- Nest, cloud WebRTC ----------------------------------------
+  # All three report WEB_RTC only -- no RTSP is offered on any of them,
+  # which is why the native nest: source is not optional here.
+  # device ids come from backend/scripts/nest-auth.mjs.
+  driveway:
+    - nest:?client_id=${NEST_CLIENT_ID}&client_secret=${NEST_CLIENT_SECRET}&refresh_token=${NEST_REFRESH_TOKEN}&project_id=${NEST_PROJECT_ID}&device_id=${NEST_DEVICE_DRIVEWAY}&protocols=WEB_RTC
+
+  doorbell:
+    - nest:?client_id=${NEST_CLIENT_ID}&client_secret=${NEST_CLIENT_SECRET}&refresh_token=${NEST_REFRESH_TOKEN}&project_id=${NEST_PROJECT_ID}&device_id=${NEST_DEVICE_DOORBELL}&protocols=WEB_RTC
+
+  # Battery. Its session cannot be extended past Google's 5-minute cap,
+  # so the dashboard keeps it on-demand and go2rtc re-negotiates.
+  back_yard:
+    - nest:?client_id=${NEST_CLIENT_ID}&client_secret=${NEST_CLIENT_SECRET}&refresh_token=${NEST_REFRESH_TOKEN}&project_id=${NEST_PROJECT_ID}&device_id=${NEST_DEVICE_BACKYARD}&protocols=WEB_RTC

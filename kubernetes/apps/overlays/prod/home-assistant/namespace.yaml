@@ -1,0 +1,17 @@
+# Shipped explicitly, and with metadata.name hardcoded, for two reasons.
+#
+# The ApplicationSet syncs with CreateNamespace=true, which produces a
+# bare, unlabelled namespace. go2rtc needs hostNetwork, and Talos enforces
+# Pod Security Admission -- without the privileged label the pod is
+# rejected at admission and the Deployment shows nothing useful. The
+# rejection only appears in `kubectl get events -n home-assistant-prod`.
+#
+# The name is hardcoded rather than left to the overlay's `namespace:`
+# transformer because kustomize does not rewrite a Namespace's own
+# metadata.name.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: home-assistant-prod
+  labels:
+    pod-security.kubernetes.io/enforce: privileged

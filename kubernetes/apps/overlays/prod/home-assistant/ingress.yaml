@@ -1,0 +1,46 @@
+# Two tailnet hostnames: the dashboard, and HA's own UI for onboarding,
+# integrations and automations.
+#
+# The scaffold shipped an nginx-class Ingress with
+# nginx.ingress.kubernetes.io/proxy-read-timeout annotations. This cluster
+# has no nginx ingress controller and no cert-manager, so those were
+# dropped rather than carried over as no-ops.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: watch
+spec:
+  ingressClassName: tailscale
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - watch
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hass
+spec:
+  ingressClassName: tailscale
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homeassistant
+                port:
+                  number: 8123
+  tls:
+    - hosts:
+        - hass

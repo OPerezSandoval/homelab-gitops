@@ -1,0 +1,54 @@
+# go2rtc stays standalone rather than using Home Assistant's bundled
+# instance: HA's managed go2rtc binds its API to 127.0.0.1 inside the HA
+# container, so the dashboard could never reach it. Running it separately
+# means HA and the dashboard share one instance and one set of camera
+# connections.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go2rtc
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: go2rtc }
+  template:
+    metadata:
+      labels: { app: go2rtc }
+    spec:
+      # WebRTC has to advertise a candidate address a browser can actually
+      # reach, which means binding the node's own network. This is why the
+      # namespace carries pod-security.kubernetes.io/enforce: privileged.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # Pinned deliberately. WEBRTC_CANDIDATE is this node's LAN address,
+      # so a pod that rescheduled elsewhere would advertise an address
+      # that no longer points at it and every stream would go black with
+      # nothing useful in the logs. One node today, but the coupling is
+      # real and worth making explicit.
+      nodeSelector:
+        kubernetes.io/hostname: talos-awp-vxu
+      containers:
+        - name: go2rtc
+          image: alexxit/go2rtc:latest
+          envFrom:
+            - secretRef: { name: home-assistant-secrets }
+          ports:
+            - { containerPort: 1984, name: api }
+            - { containerPort: 8555, name: webrtc }
+          volumeMounts:
+            - { name: config, mountPath: /config/go2rtc.yaml, subPath: go2rtc.yaml }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: config
+          configMap: { name: go2rtc-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go2rtc
+spec:
+  selector: { app: go2rtc }
+  ports:
+    - { name: api, port: 1984, targetPort: 1984 }

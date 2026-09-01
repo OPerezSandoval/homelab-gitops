@@ -1,0 +1,15 @@
+# local-path, not the default nfs-storage. Home Assistant's recorder is
+# SQLite, and SQLite over NFS has well-known advisory-locking problems
+# that corrupt the database. local-path is node-local and ReadWriteOnce,
+# which is also what the Recreate rollout strategy assumes.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hass-config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
