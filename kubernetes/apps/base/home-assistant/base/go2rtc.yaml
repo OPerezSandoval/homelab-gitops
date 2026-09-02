@@ -9,6 +9,16 @@ metadata:
   name: go2rtc
 spec:
   replicas: 1
+  # Recreate, not RollingUpdate. With hostNetwork the pod owns ports 1984,
+  # 8554 and 8555 on the node, and those are a singleton: a rolling update
+  # tries to start the replacement while the old pod still holds them, the
+  # new pod sits Pending on "didn't have free ports for the requested pod
+  # ports", and maxUnavailable of a single replica rounds to zero so the
+  # old one is never evicted. The rollout deadlocks until someone deletes
+  # the pod by hand. Same conclusion as the HA Deployment, different
+  # reason -- host ports rather than a SQLite file.
+  strategy:
+    type: Recreate
   selector:
     matchLabels: { app: go2rtc }
   template:
@@ -38,8 +48,18 @@ spec:
           volumeMounts:
             - { name: config, mountPath: /config/go2rtc.yaml, subPath: go2rtc.yaml }
           resources:
-            requests: { cpu: 100m, memory: 128Mi }
-            limits: { memory: 512Mi }
+            # 512Mi was not enough. go2rtc idles around 200Mi but spikes
+            # well past that with four concurrent sessions -- one RTSP and
+            # three Nest WebRTC -- and was OOMKilled (exit 137) once the
+            # battery camera came back online and made the fourth stream
+            # real. The kill is worse than it sounds: on restart the nest:
+            # producers re-negotiate, and the consumer's video sender can
+            # bind to the wrong H264 receiver, leaving a stream that
+            # delivers audio only while the video arrives on a receiver
+            # nothing is attached to. The dashboard reports such a tile as
+            # "live" because the peer connection did succeed.
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
       volumes:
         - name: config
           configMap: { name: go2rtc-config }
