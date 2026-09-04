@@ -34,8 +34,24 @@ log:
 
 streams:
   # ---- Local, RTSP ------------------------------------------------
+  # The camera offers `audio, recvonly, MPEG4-GENERIC/8000` -- AAC, which
+  # WebRTC cannot carry. go2rtc drops the track silently: the producer shows
+  # one h264 receiver and no audio receiver at all, so the tile plays video
+  # with no sound and logs nothing. The second source is go2rtc's documented
+  # fix -- the same URL through ffmpeg with the audio re-encoded to Opus,
+  # video passed through untouched.
+  #
+  # This opens a SECOND RTSP session to the camera. Wansview firmware caps
+  # concurrent sessions (commonly 4), and HA's ONVIF integration holds one of
+  # its own, so if streams start failing to open, this is the first thing to
+  # suspect.
+  #
+  # Safe here because the source is RTSP. Do NOT copy this pattern onto a
+  # `nest:` source -- ffmpeg is a transcode consumer and those hang forever
+  # on Nest, pinning the producer. See .claude/architecture.md.
   nursery:
     - rtsp://${WANSVIEW_USER}:${WANSVIEW_PASS}@${WANSVIEW_HOST}:554/live/ch0
+    - ffmpeg:rtsp://${WANSVIEW_USER}:${WANSVIEW_PASS}@${WANSVIEW_HOST}:554/live/ch0#audio=opus
   nursery_sub:
     - rtsp://${WANSVIEW_USER}:${WANSVIEW_PASS}@${WANSVIEW_HOST}:554/live/ch1
 
