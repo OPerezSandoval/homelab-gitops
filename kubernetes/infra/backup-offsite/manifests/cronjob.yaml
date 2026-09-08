@@ -60,6 +60,18 @@ spec:
                     restic init
                   fi
 
+                  # Drop stale locks before doing anything that needs one.
+                  # A restore test that dies without cleaning up leaves an
+                  # exclusive lock behind, and `forget --prune` then fails
+                  # every night while `backup` keeps succeeding — the repo
+                  # grows unpruned and `check` never runs, which is a silent
+                  # failure this job should heal rather than inherit.
+                  # Plain `unlock` (never --remove-all) only removes locks
+                  # restic considers stale, so a genuinely running restore
+                  # keeps its lock and this stays safe to run unconditionally.
+                  echo "=== unlock ==="
+                  restic unlock
+
                   echo "=== backup ==="
                   restic backup /data \
                     --tag homelab \
