@@ -37,6 +37,6 @@ images:
   - name: alexxit/go2rtc
     newTag: "1.9.14"
   - name: operez11/home-assistant-backend
-    newTag: "dev-6be1ae0"
+    newTag: "dev-92bd4cb"
   - name: operez11/home-assistant-frontend
-    newTag: "dev-6be1ae0"
+    newTag: "dev-92bd4cb"
